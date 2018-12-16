@@ -29,7 +29,7 @@ import java.util.Date;
 import java.util.Locale;
 
 final class BefLog {
-    public static final String TAG_PREF = "BEFREST-";
+    public static final String TAG_PREF = "BEFRESTAPP";
     private static final String TAG = TAG_PREF + "BefLog";
     private static final boolean LogToFile = false;
     public static final String SDK_VERSION_NAME = "2.1.2";

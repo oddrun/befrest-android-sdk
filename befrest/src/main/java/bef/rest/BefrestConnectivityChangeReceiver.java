@@ -32,18 +32,17 @@ public final class BefrestConnectivityChangeReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         try {
             String action = intent.getAction();
+            String flag = "";
             BefLog.v(TAG, "Broadcast received: action=" + action);
             Class<?> pushService = ((BefrestInvocHandler) Proxy.getInvocationHandler(BefrestFactory.getInternalInstance(context))).obj.pushService;
             if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION))
                 if (BefrestImpl.Util.isConnectedToInternet(context))
-                    context.startService(new Intent(context, pushService).putExtra(PushService.NETWORK_CONNECTED, true));
+                    flag = PushService.NETWORK_CONNECTED;
                 else
-                    context.startService(new Intent(context, pushService).putExtra(PushService.NETWORK_DISCONNECTED, true));
-        }catch (Throwable t){
-            ACRACrashReport crash = new ACRACrashReport(context, t);
-            crash.message = "Exception while handling broadcast received via BefrestConnectivityChangeReceiver";
-            crash.setHandled(false);
-            crash.report();
+                    flag = PushService.NETWORK_DISCONNECTED;
+            BefrestImpl.startService(pushService, context, flag);
+        } catch (Throwable t) {
+
             throw t;
         }
     }

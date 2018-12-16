@@ -20,7 +20,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Parcelable;
-
+import android.util.Log;
 
 /**
  * Override this class to make register receivers. You can register receivers
@@ -34,14 +34,15 @@ public abstract class BefrestPushReceiver extends BroadcastReceiver {
     static final int CONNECTION_REFRESHED = 2;
     static final int BEFREST_CONNECTED = 3;
     static final String BROADCAST_TYPE = "BROADCAST_TYPE";
-    static final String ACTION_BEFREST_PUSH = "rest.bef.broadcasts.ACTION_BEFREST_PUSH";
+    static final String ACTION_BEFREST_PUSH = "bef.rest.broadcasts.ACTION_BEFREST_PUSH";
     static final String KEY_TIME_SENT = "KEY_TIME_SENT";
 
     @Override
     public final void onReceive(Context context, Intent intent) {
+        BefLog.i(TAG, "onReceive: ");
         int type = intent.getIntExtra(BROADCAST_TYPE, -1);
         String timeSent = intent.getStringExtra(KEY_TIME_SENT);
-        BefLog.v(TAG, "Broadcast Received :: type: " + type + "      timeSent:" + timeSent);
+        BefLog.w(TAG, "Broadcast Received :: type: " + type + "      timeSent:" + timeSent);
         switch (type) {
             case PUSH:
                 Parcelable[] p = intent.getParcelableArrayExtra(BefrestImpl.Util.KEY_MESSAGE_PASSED);
@@ -102,3 +103,4 @@ public abstract class BefrestPushReceiver extends BroadcastReceiver {
     public void onAnomaly(Context context, String data) {
     }
 }
+

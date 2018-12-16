@@ -28,6 +28,7 @@ class BefrestPrefrences {
     static final String PREF_U_ID = "PREF_U_ID";
     static final String PREF_AUTH = "PREF_AUTH";
     static final String PREF_CH_ID = "PREF_CH_ID";
+    static final String PREF_LAST_STATE = "PREF_LAST_STATE";
     static final String PREF_TOPICS = "PREF_TOPICS";
     static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
     static final String PREF_CUSTOM_PUSH_SERVICE_NAME = "PREF_CUSTOM_PUSH_SERVICE_NAME";

@@ -17,12 +17,18 @@ package bef.rest;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,12 +46,17 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
     static final int START_ALARM_CODE = 676428;
     static final int KEEP_PINGING_ALARM_CODE = 676429;
+    private JobScheduler jobScheduler;
 
     BefrestImpl(Context context) {
         this.context = context.getApplicationContext();
         SharedPreferences prefs = getPrefs(context);
         uId = prefs.getLong(PREF_U_ID, -1);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        }
         chId = prefs.getString(PREF_CH_ID, null);
+        prefs.getString(PREF_LAST_STATE, null);
         auth = prefs.getString(PREF_AUTH, null);
         topics = prefs.getString(PREF_TOPICS, "");
         logLevel = prefs.getInt(PREF_LOG_LEVEL, LOG_LEVEL_DEFAULT);
@@ -103,11 +114,15 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     public Befrest init(long uId, String auth, String chId) {
         if (chId == null || !(chId.length() > 0))
             throw new BefrestException("invalid chId!");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        }
         if (uId != this.uId || (auth != null && !auth.equals(this.auth)) || !chId.equals(this.chId)) {
             this.uId = uId;
             this.auth = auth;
             this.chId = chId;
             clearTempData();
+
             saveToPrefs(context, uId, auth, chId);
         }
         return this;
@@ -181,17 +196,40 @@ final class BefrestImpl implements Befrest, BefrestInternal {
      *
      * @throws IllegalStateException if be called without a prior call to init()
      */
+
     public void start() {
         BefLog.i(TAG, "starting befrest");
         if (uId < 0 || chId == null || chId.length() < 1)
             throw new BefrestException("uId and chId are not properly defined!");
         isBefrestStarted = true;
-        if (connectionDataChangedSinceLastStart)
-            context.stopService(new Intent(context, pushService));
-        context.startService(new Intent(context, pushService).putExtra(PushService.CONNECT, true));
+        saveString(context, PREF_LAST_STATE, null);
+        // if (connectionDataChangedSinceLastStart)
+        context.stopService(new Intent(context, pushService));
+        BefrestImpl.startService(pushService, context, PushService.CONNECT);
+
         connectionDataChangedSinceLastStart = false;
         Util.enableConnectivityChangeListener(context);
-        ACRACrashReportSender.sendCoughtReportsInPossible(context);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
+            if (jobScheduler.getAllPendingJobs().size() > 0) {
+                jobScheduler.cancelAll();
+                BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
+            }
+        }
+    }
+
+    public static void startService(Class<?> pushService, Context context, String flag) {
+            try {
+                Intent intent = new Intent(context, pushService);
+                intent.putExtra(flag, true);
+                context.startService(intent);
+            } catch (RuntimeException e) {
+
+                throw e;
+            }
+
+
+
     }
 
     /**
@@ -304,7 +342,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             return true;
         refreshIsRequested = true;
         lastAcceptedRefreshRequestTime = System.currentTimeMillis();
-        context.startService(new Intent(context, pushService).putExtra(PushService.REFRESH, true));
+        BefrestImpl.startService(pushService,context,PushService.REFRESH);
         return true;
     }
 
@@ -355,13 +393,28 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         clearTempData();
     }
 
+
     public void setStartServiceAlarm() {
-        AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(context, pushService).putExtra(PushService.SERVICE_STOPPED, true);
-        PendingIntent pi = PendingIntent.getService(context, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        long triggerAtMillis = SystemClock.elapsedRealtime() + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY;
-        alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pi);
-        BefLog.d(TAG, "BefrestImpl Scheduled To Start Service In " + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY + "ms");
+
+        Log.i(TAG, "setStartServiceAlarm: ");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            saveString(context, PREF_LAST_STATE, "true");
+            jobScheduler.schedule(new JobInfo.Builder(1001,
+                    new ComponentName(context, BackgroundService.class))
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                    .setMinimumLatency(1000)
+                    .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
+                    .setOverrideDeadline(1000 * 60 * 60 * 6)
+                    .setPersisted(true)
+                    .build());
+        } else {
+            AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            Intent intent = new Intent(context, pushService).putExtra(PushService.SERVICE_STOPPED, true);
+            PendingIntent pi = PendingIntent.getService(context, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            long triggerAtMillis = SystemClock.elapsedRealtime() + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY;
+            alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pi);
+            BefLog.i(TAG, "BefrestImpl Scheduled To Start Service In " + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY + "ms");
+        }
     }
 
     private void clearTempData() {
@@ -412,10 +465,10 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             long now = System.currentTimeMillis();
             intent.putExtra(BefrestPushReceiver.KEY_TIME_SENT, "" + now);
             context.getApplicationContext().sendBroadcast(intent, permission);
-            BefLog.v(TAG, "broadcast sent::    type: " + type + "      permission:" + permission);
+            BefLog.w(TAG, "broadcast sent::    type: " + type + "      permission:" + permission);
         } catch (Exception ignored) {
             //catch System failure
-            BefLog.v(TAG, "could not send broadcast type: " + type);
+            BefLog.w(TAG, "could not send broadcast type: " + type);
         }
     }
 
@@ -427,13 +480,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
         if (System.currentTimeMillis() - connectAnomalyDataRecordingStartTime > WAIT_TIME_BEFORE_SENDING_CONNECT_ANOMLY_REPORT)
             if (reportedContinuousCloses > 75) {
-                ACRACrashReport crash = new ACRACrashReport(context, "Connect Anomaly Report");
-                crash.addCustomData("ContiniousCloseTypes", continuousClosesTypes);
-                crash.addCustomData("LastSuccessfulConnectTime", "" + getPrefs(context).getLong(PREF_LAST_SUCCESSFUL_CONNECT_TIME, 0));
-                crash.addCustomData("SubscribeUri", getSubscribeUri());
-                for (NameValuePair valuePair : getSubscribeHeaders())
-                    crash.addCustomData(valuePair.getName(), valuePair.getValue());
-                crash.report();
+
                 clearAnomalyHistory();
             }
     }

@@ -17,6 +17,7 @@
 
 package bef.rest;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -391,6 +392,7 @@ class WebSocketWriter extends Handler {
      *
      * @param msg Message from thread message queue.
      */
+    @SuppressLint("LongLogTag")
     @Override
     public void handleMessage(Message msg) {
 
@@ -432,16 +434,16 @@ class WebSocketWriter extends Handler {
             Log.e(TAG, "unExpected Exception! (handled)");
             // wrap the exception and notify master
             notify(new WebSocketMessage.Error(e));
-            ACRACrashReport crash = new ACRACrashReport(context, e);
+           /* ACRACrashReport crash = new ACRACrashReport(context, e);
             crash.message = "(handled) Exception in WebSocketWriter.";
             crash.setHandled(true);
-            crash.report();
+            crash.report();*/
         } catch (Throwable t) {
             Log.e(TAG, "unExpected Exception!");
-            ACRACrashReport crash = new ACRACrashReport(context, t);
+         /*   ACRACrashReport crash = new ACRACrashReport(context, t);
             crash.message = "Exception in WebSocketWriter.";
             crash.setHandled(false);
-            crash.report();
+            crash.report();*/
             throw t;
         }
     }

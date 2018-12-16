@@ -51,10 +51,7 @@ public final class BefrestMessage implements Parcelable {
     }
 
     private void reportCorruptedMessageAnomaly(Context c, Exception e) {
-        ACRACrashReport crash = new ACRACrashReport(c, e);
-        crash.message = "(handled) Corrupted push message";
-        crash.setHandled(true);
-        crash.report();
+
     }
 
     private void parseMessageV2(JSONObject jsObject) throws JSONException {

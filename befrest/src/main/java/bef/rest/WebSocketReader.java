@@ -695,30 +695,21 @@ class WebSocketReader extends Thread {
             // wrap the exception and notify master
             notify(new WebSocketMessage.Error(e));
 
-            ACRACrashReport crash = new ACRACrashReport(context, e);
-            crash.message = "(handled) Exception in WebSocketReader.";
-            crash.setHandled(true);
-            crash.report();
+
         } catch (Throwable t) {
             BefLog.e(TAG, t);
-            ACRACrashReport crash = new ACRACrashReport(context, t);
+
             if (isAssersionErrorCausedByNoSuchAlgorithm(t)) {
                 if (reportedNoSuchAlgorithmInThisSession < 2) {
-                    reportedNoSuchAlgorithmInThisSession ++;
-                    crash.message = "(handled) NoSuchAlgorithmException : MD5 implementation not found while ssl handshake process (Nazdika#954)";
-                    crash.setHandled(true);
-                    crash.report();
+                    reportedNoSuchAlgorithmInThisSession++;
+
                     notify(new WebSocketMessage.Error(new Exception(t)));
                 } else {
-                    crash.message = "NoSuchAlgorithmException : MD5 implementation not found while ssl handshake process (Nazdika#954)";
-                    crash.setHandled(false);
-                    crash.report();
+
                     throw t;
                 }
             } else {
-                crash.message = "Exception in WebSocketReader.";
-                crash.setHandled(false);
-                crash.report();
+
                 throw t;
             }
         } finally {
