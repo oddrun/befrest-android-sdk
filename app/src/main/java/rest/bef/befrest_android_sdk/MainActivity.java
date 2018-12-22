@@ -9,11 +9,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.Toast;
-
-import com.crashlytics.android.Crashlytics;
 
 import java.util.Random;
 
@@ -39,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
+
+
 
         if (auth == null) {
             Call<Entity> entityCall = apiService.getAuth(chid);

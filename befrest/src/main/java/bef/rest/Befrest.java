@@ -50,6 +50,7 @@ public interface Befrest {
     Befrest setUId(long uId);
     Befrest setChId(String chId) ;
     Befrest setAuth(String auth);
+
     void start();
     void stop();
     Befrest addTopic(String topicName);

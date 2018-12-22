@@ -27,7 +27,15 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.google.firebase.messaging.FirebaseMessagingService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,7 +117,8 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
     private String subscribeUrl;
     private List<NameValuePair> subscribeHeaders;
-    private NameValuePair authHeader;
+    private NameValuePair authHeader, fcmHeader;
+
 
     /**
      * Initialize push receive service. You can also use setter messages for initializing.
@@ -129,7 +138,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             this.auth = auth;
             this.chId = chId;
             clearTempData();
-
             saveToPrefs(context, uId, auth, chId);
         }
         return this;
@@ -196,6 +204,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         return this;
     }
 
+
     /**
      * Start push service. You should set uId and chId before calling this start.
      * Best Practice: call this method in your onCreate() method of your Application class
@@ -205,6 +214,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
      */
 
     public void start() {
+
         BefLog.i(TAG, "starting befrest");
         if (uId < 0 || chId == null || chId.length() < 1)
             throw new BefrestException("uId and chId are not properly defined!");
@@ -226,15 +236,14 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     }
 
     public static void startService(Class<?> pushService, Context context, String flag) {
-            try {
-                Intent intent = new Intent(context, pushService);
-                intent.putExtra(flag, true);
-                context.startService(intent);
-            } catch (RuntimeException e) {
+        try {
+            Intent intent = new Intent(context, pushService);
+            intent.putExtra(flag, true);
+            context.startService(intent);
+        } catch (RuntimeException e) {
 
-                throw e;
-            }
-
+            throw e;
+        }
 
 
     }
@@ -349,7 +358,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             return true;
         refreshIsRequested = true;
         lastAcceptedRefreshRequestTime = System.currentTimeMillis();
-        BefrestImpl.startService(pushService,context,PushService.REFRESH);
+        BefrestImpl.startService(pushService, context, PushService.REFRESH);
         return true;
     }
 
@@ -409,7 +418,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             jobScheduler.schedule(new JobInfo.Builder(1001,
                     new ComponentName(context, BackgroundService.class))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setMinimumLatency(1000*5)
+                    .setMinimumLatency(1000 * 5)
                     .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
                     .setOverrideDeadline(1000 * 60 * 60 * 6)
                     .setPersisted(true)
@@ -426,13 +435,13 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
     @Override
     public void sendCrash(String stackTrace) {
-        CrashReport crashReport= new CrashReport(stackTrace);
+        CrashReport crashReport = new CrashReport(stackTrace);
         ApiService apiService = ApiClient.getClient(context).create(ApiService.class);
-        Call<BaseResponse> call= apiService.sendCrash(crashReport);
+        Call<BaseResponse> call = apiService.sendCrash(crashReport);
         call.enqueue(new Callback<BaseResponse>() {
             @Override
             public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
-                BefLog.d(TAG,response.body().toString());
+                BefLog.d(TAG, response.body().toString());
             }
 
             @Override
@@ -442,14 +451,14 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     }
 
 
-    public static void sendCrash(String stackTrace,Context mcontext) {
-        CrashReport crashReport= new CrashReport(stackTrace);
+    public static void sendCrash(String stackTrace, Context mcontext) {
+        CrashReport crashReport = new CrashReport(stackTrace);
         ApiService apiService = ApiClient.getClient(mcontext).create(ApiService.class);
-        Call<BaseResponse> call= apiService.sendCrash(crashReport);
+        Call<BaseResponse> call = apiService.sendCrash(crashReport);
         call.enqueue(new Callback<BaseResponse>() {
             @Override
             public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
-                BefLog.d(TAG,response.body().toString());
+                BefLog.d(TAG, response.body().toString());
             }
 
             @Override
@@ -473,10 +482,18 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         return subscribeUrl;
     }
 
+    public NameValuePair hasFCMToken() {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) == null) {
+            fcmHeader = new NameValuePair("X-BF-FCM", "0");
+        }
+        fcmHeader = new NameValuePair("X-BF-FCM", "1");
+        return fcmHeader;
+    }
     public List<NameValuePair> getSubscribeHeaders() {
         if (subscribeHeaders == null) {
             subscribeHeaders = new ArrayList<>();
             subscribeHeaders.add(getAuthHeader());
+            subscribeHeaders.add(hasFCMToken());
             if (topics != null && topics.length() > 0)
                 subscribeHeaders.add(new NameValuePair("X-BF-TOPICS", topics));
         }

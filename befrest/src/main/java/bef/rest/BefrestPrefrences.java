@@ -37,6 +37,7 @@ class BefrestPrefrences {
     static final String PREF_LAST_SUCCESSFUL_CONNECT_TIME = "PREF_LAST_SUCCESSFUL_CONNECT_TIME";
     static final String PREF_CONNECT_ANOMALY_DATA_RECORDING_TIME = "PREF_CONNECT_ANOMALY_DATA_RECORDING_TIME";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
+    static final String PREF_FCM_TOKEN="PREF_FCM_TOKEN";
 
     static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);

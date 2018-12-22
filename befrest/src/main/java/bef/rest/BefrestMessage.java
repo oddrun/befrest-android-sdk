@@ -100,6 +100,12 @@ public final class BefrestMessage implements Parcelable {
         return "A" + type.toString().charAt(0) + msgId;
     }
 
+    /**
+     *
+     * @return String
+     */
+
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

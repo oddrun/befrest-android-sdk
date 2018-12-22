@@ -16,17 +16,26 @@
 
 package bef.rest;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.util.Log;
+import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -36,15 +45,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Random;
+import java.util.Objects;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
 import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
 import static bef.rest.BefrestPrefrences.getPrefs;
+import static bef.rest.BefrestPrefrences.saveString;
 
 class BefrestConnection extends Handler {
     private static final String TAG = BefLog.TAG_PREF + "BefrestConnection";
@@ -95,7 +106,7 @@ class BefrestConnection extends Handler {
     private Runnable sendPing = new Runnable() {
         @Override
         public void run() {
-            BefrestImpl.startService(pushService,appContext,PushService.PING);
+            BefrestImpl.startService(pushService, appContext, PushService.PING);
         }
     };
 
@@ -130,8 +141,8 @@ class BefrestConnection extends Handler {
         if (!isValid) return;
         cancelUpcommingRestart();
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE,null)==null)
-        setNextPingToSendInFuture();
+        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+            setNextPingToSendInFuture();
         notifyConnectionRefreshedIfNeeded();
     }
 
@@ -159,8 +170,8 @@ class BefrestConnection extends Handler {
         if (restartInProgress || System.currentTimeMillis() - lastPingSetTime < getPingInterval() / 2)
             return;
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE,null)==null)
-        setNextPingToSendInFuture();
+        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+            setNextPingToSendInFuture();
         BefLog.i(TAG, "BefrestImpl Pinging Revised");
     }
 
@@ -176,6 +187,8 @@ class BefrestConnection extends Handler {
     }
 
 
+
+
     public BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
         super(looper);
         this.mLooper = looper;
@@ -185,6 +198,24 @@ class BefrestConnection extends Handler {
         pushService = ((BefrestInvocHandler) Proxy.getInvocationHandler(BefrestFactory.getInternalInstance(appContext))).obj.pushService;
         lastReceivedMesseges = new MessageIdPersister(appContext);
         BefLog.i(TAG, "lastReceivedMessages: " + lastReceivedMesseges);
+    }
+
+    /**
+     * set up firebase for get token
+     */
+    public void setupFireBase() {
+        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @Override
+            public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                if (!task.isSuccessful()) {
+
+                    return;
+                }
+                Toast.makeText(appContext, task.getResult().getToken(), Toast.LENGTH_SHORT).show();
+                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN,null),task.getResult().getToken());
+            }
+        });
     }
 
     public void setKeepPingingAlarm(int pingDelay) {
@@ -225,7 +256,7 @@ class BefrestConnection extends Handler {
                 handleBefrestEvent(((BefrestEvent) msg.obj));
             }
         } catch (Throwable t) {
-            BefrestImpl.sendCrash(t.getCause().getMessage(),appContext);
+            BefrestImpl.sendCrash(t.getCause().getMessage(), appContext);
             BefLog.e(TAG, "unExpected Exception!");
 
             throw t;
@@ -251,12 +282,37 @@ class BefrestConnection extends Handler {
                 BefLog.i(TAG, "Could not send ack as mWriter is null (befrest is disconnected before we send ack message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
 
+    private void sendFCMToken(String prevToken, String newToken) {
+        if (prevToken==null)
+            prevToken="";
+        if (prevToken.equals(newToken))
+            return;
+
+        BefLog.w(TAG,FCMTokenBuilder(prevToken,newToken));
+        try {
+            if (mWriter != null) {
+                mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken,newToken)));
+                BefrestPrefrences.saveString(appContext,PREF_FCM_TOKEN,newToken);
+                BefLog.w(TAG, "Ack FCM token : " + prevToken);
+            } else {
+                BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send ack message)");
+            }
+        } catch (Exception e) {
+            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+        }
+    }
+
+    private String FCMTokenBuilder(String prevToken, String newToken) {
+        return String.format("%s~%s",prevToken,newToken);
+    }
+
+
     public void handleMsgFromReaderWriter(WebSocketMessage.Message msg) {
-        BefLog.i(TAG,msg.toString());
+        BefLog.i(TAG, msg.toString());
         if (msg instanceof WebSocketMessage.TextMessage) {
             WebSocketMessage.TextMessage textMessage = (WebSocketMessage.TextMessage) msg;
             revisePinging();
@@ -305,7 +361,7 @@ class BefrestConnection extends Handler {
             final int closeCode = (close.mCode == 1000) ? WebSocket.ConnectionHandler.CLOSE_NORMAL : WebSocket.ConnectionHandler.CLOSE_CONNECTION_LOST;
             disconnectAndNotify(closeCode, close.mReason);
         } else if (msg instanceof WebSocketMessage.ServerHandshake) {
-            BefLog.i(TAG,"ServerHandShake");
+            BefLog.i(TAG, "ServerHandShake");
             WebSocketMessage.ServerHandshake serverHandshake = (WebSocketMessage.ServerHandshake) msg;
             BefLog.i(TAG, "opening handshake received");
             removeCallbacks(disconnectIfWebSocketHandshakeTimeOut);
@@ -315,14 +371,14 @@ class BefrestConnection extends Handler {
                     mWsHandler.onOpen();
                 } catch (Exception e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
 
                 }
                 postDelayed(releaseConnectWakeLock, 2000);
                 notifyConnectionRefreshedIfNeeded();
                 prevSuccessfulPings = 0;
-                if (getPrefs(appContext).getString(PREF_LAST_STATE,null)==null)
-                setNextPingToSendInFuture();
+                if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+                    setNextPingToSendInFuture();
 
             } else {
                 BefLog.w(TAG, "could not call onOpen() .. serverHandshake was not successful");
@@ -365,6 +421,7 @@ class BefrestConnection extends Handler {
         switch (e.type) {
             case CONNECT:
                 connect();
+                setupFireBase();
                 break;
             case DISCONNECT:
                 disconnect();
@@ -393,7 +450,7 @@ class BefrestConnection extends Handler {
 //            prevSuccessfulPings = 0; seems illogical
             cancelFuturePing();
             cancelUpcommingRestart();
-            if (getPrefs(appContext).getString(PREF_LAST_STATE,null)==null){
+            if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
                 BefLog.i(TAG, "refresh: inn if");
                 setNextPingToSendInFuture(0);
             }
@@ -434,17 +491,16 @@ class BefrestConnection extends Handler {
             } catch (IOException e) {
                 BefLog.e(TAG, e);
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
-                BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+                BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
             } catch (Exception ex) {
                 BefLog.e(TAG, ex);
-                BefrestImpl.sendCrash(ex.getCause().getMessage(),appContext);
+                BefrestImpl.sendCrash(ex.getCause().getMessage(), appContext);
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, ex.getMessage());
             } catch (AssertionError e) {
                 if (isAndroidGetsocknameError(e)) {
                     BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
                     disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
-                }
-                else
+                } else
                     throw e;
             }
         }
@@ -456,7 +512,7 @@ class BefrestConnection extends Handler {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
 
@@ -532,7 +588,7 @@ class BefrestConnection extends Handler {
             else mWsQuery = mWsUri.getRawQuery();
         } catch (URISyntaxException e) {
             //should not come here
-            BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
         mWsSubprotocols = null;
         mWsHeaders = headers;
@@ -558,13 +614,12 @@ class BefrestConnection extends Handler {
                     BefLog.i(TAG, "mTranslateChannel closed");
                 } catch (IOException e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
                 } catch (AssertionError e) {
                     if (isAndroidGetsocknameError(e)) {
                         BefLog.e(TAG, e);
                         BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
-                    }
-                    else throw e;
+                    } else throw e;
                 }
             } else {
                 BefLog.i(TAG, "mTransportChannel was NULL");
@@ -579,7 +634,7 @@ class BefrestConnection extends Handler {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(),appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
         mReader = null;
         mWriter = null;
@@ -593,6 +648,7 @@ class BefrestConnection extends Handler {
         return res;
     }
 
+    @SuppressLint("InvalidWakeLockTag")
     private void acquireConnectWakeLockIfPossible() {
         removeCallbacks(releaseConnectWakeLock);
         if (BefrestInternal.Util.isWakeLockPermissionGranted(appContext)) {
