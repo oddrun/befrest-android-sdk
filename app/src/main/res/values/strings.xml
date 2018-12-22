@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">befrest-android-sdk</string>
+    <string name="unsub_topic_2">Unsub Topic 2</string>
+    <string name="unsub_topic_1">unSub topic 1</string>
+    <string name="subscribe_topic_2">Subscribe Topic 2</string>
+    <string name="subscribe_topic_1">Subscribe Topic 1</string>
 </resources>

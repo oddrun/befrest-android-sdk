@@ -24,6 +24,7 @@ final class FileLogThread extends Thread {
     public volatile Handler handler = null;
     private final Object handlerSyncObject = new Object();
 
+
     public FileLogThread(final String threadName) {
         setName(threadName);
         start();

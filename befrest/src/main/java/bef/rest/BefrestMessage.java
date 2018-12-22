@@ -41,6 +41,7 @@ public final class BefrestMessage implements Parcelable {
             parseMessageV2(jsObject);
         } catch (Exception e) { //JSONException or any other unExpected Exception
             isCorrupted = true;
+            BefrestImpl.sendCrash(e.getMessage(),appContext);
             reportCorruptedMessageAnomaly(appContext, e);
         }
         //last check if message is not properly parsed

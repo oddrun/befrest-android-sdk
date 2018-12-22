@@ -416,30 +416,37 @@ class WebSocketWriter extends Handler {
         } catch (SocketException e) {
 
             BefLog.v(TAG, "run() : SocketException (" + e.toString() + ")");
+            BefrestImpl.sendCrash(e.getMessage(),context);
 
             // wrap the exception and notify master
             notify(new WebSocketMessage.ConnectionLost());
         } catch (SSLException e) {
             BefLog.v(TAG, "run() : SSLException (" + e.toString() + ")");
+            BefrestImpl.sendCrash(e.getMessage(),context);
+
 
             // wrap the exception and notify master
             notify(new WebSocketMessage.ConnectionLost());
         }catch (WebSocketException e){
             BefLog.v(TAG, "run() : WebSocketException (" + e.toString() + ")");
             notify(new WebSocketMessage.ConnectionLost());
+            BefrestImpl.sendCrash(e.getMessage(),context);
         }catch (IOException e) {
             BefLog.v(TAG, "run() : IOException (" + e.toString() + ")");
             notify(new WebSocketMessage.ConnectionLost());
+            BefrestImpl.sendCrash(e.getMessage(),context);
         }catch (Exception e){
             Log.e(TAG, "unExpected Exception! (handled)");
             // wrap the exception and notify master
             notify(new WebSocketMessage.Error(e));
+            BefrestImpl.sendCrash(e.getMessage(),context);
            /* ACRACrashReport crash = new ACRACrashReport(context, e);
             crash.message = "(handled) Exception in WebSocketWriter.";
             crash.setHandled(true);
             crash.report();*/
         } catch (Throwable t) {
             Log.e(TAG, "unExpected Exception!");
+            BefrestImpl.sendCrash(t.getMessage(),context);
          /*   ACRACrashReport crash = new ACRACrashReport(context, t);
             crash.message = "Exception in WebSocketWriter.";
             crash.setHandled(false);

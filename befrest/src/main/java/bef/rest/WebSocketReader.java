@@ -674,12 +674,13 @@ class WebSocketReader extends Thread {
         } catch (WebSocketException e) {
 
             BefLog.v(TAG, "run() : WebSocketException (" + e.toString() + ")");
+            BefrestImpl.sendCrash(e.getMessage(),context);
 
             // wrap the exception and notify master
             notify(new WebSocketMessage.ProtocolViolation(e));
 
         } catch (SocketException e) {
-
+            BefrestImpl.sendCrash(e.getMessage(),context);
             BefLog.v(TAG, "run() : SocketException (" + e.toString() + ")");
 
             // wrap the exception and notify master
@@ -687,6 +688,7 @@ class WebSocketReader extends Thread {
 
         } catch (SSLException e) {
             BefLog.v(TAG, "run() : SSLException (" + e.toString() + ")");
+            BefrestImpl.sendCrash(e.getMessage(),context);
 
             // wrap the exception and notify master
             notify(new WebSocketMessage.ConnectionLost());
@@ -694,10 +696,11 @@ class WebSocketReader extends Thread {
             BefLog.e(TAG, "(handled) unExpected Exception!");
             // wrap the exception and notify master
             notify(new WebSocketMessage.Error(e));
-
+            BefrestImpl.sendCrash(e.getMessage(),context);
 
         } catch (Throwable t) {
             BefLog.e(TAG, t);
+            BefrestImpl.sendCrash(t.getMessage(),context);
 
             if (isAssersionErrorCausedByNoSuchAlgorithm(t)) {
                 if (reportedNoSuchAlgorithmInThisSession < 2) {

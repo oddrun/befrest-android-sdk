@@ -20,15 +20,10 @@ import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.hardware.display.DisplayManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.util.Base64;
-import android.view.Display;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
@@ -37,6 +32,8 @@ interface BefrestInternal {
     int LOG_LEVEL_DEFAULT = Befrest.LOG_LEVEL_INFO;
 
     void setStartServiceAlarm();
+
+    void sendCrash(String stackTrace);
 
     String getSubscribeUri();
 

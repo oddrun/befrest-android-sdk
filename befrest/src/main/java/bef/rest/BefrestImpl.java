@@ -27,13 +27,20 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+
+import bef.rest.connection.ApiClient;
+import bef.rest.connection.ApiService;
+import bef.rest.connection.model.BaseResponse;
+import bef.rest.connection.model.CrashReport;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import static bef.rest.BefrestPrefrences.*;
 
@@ -52,7 +59,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         this.context = context.getApplicationContext();
         SharedPreferences prefs = getPrefs(context);
         uId = prefs.getLong(PREF_U_ID, -1);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
         chId = prefs.getString(PREF_CH_ID, null);
@@ -114,7 +121,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     public Befrest init(long uId, String auth, String chId) {
         if (chId == null || !(chId.length() > 0))
             throw new BefrestException("invalid chId!");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
         if (uId != this.uId || (auth != null && !auth.equals(this.auth)) || !chId.equals(this.chId)) {
@@ -209,7 +216,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
         connectionDataChangedSinceLastStart = false;
         Util.enableConnectivityChangeListener(context);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
             if (jobScheduler.getAllPendingJobs().size() > 0) {
                 jobScheduler.cancelAll();
@@ -396,13 +403,13 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
     public void setStartServiceAlarm() {
 
-        Log.i(TAG, "setStartServiceAlarm: ");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        BefLog.i(TAG, "setStartServiceAlarm: ");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             saveString(context, PREF_LAST_STATE, "true");
             jobScheduler.schedule(new JobInfo.Builder(1001,
                     new ComponentName(context, BackgroundService.class))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setMinimumLatency(1000)
+                    .setMinimumLatency(1000*5)
                     .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
                     .setOverrideDeadline(1000 * 60 * 60 * 6)
                     .setPersisted(true)
@@ -415,6 +422,41 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pi);
             BefLog.i(TAG, "BefrestImpl Scheduled To Start Service In " + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY + "ms");
         }
+    }
+
+    @Override
+    public void sendCrash(String stackTrace) {
+        CrashReport crashReport= new CrashReport(stackTrace);
+        ApiService apiService = ApiClient.getClient(context).create(ApiService.class);
+        Call<BaseResponse> call= apiService.sendCrash(crashReport);
+        call.enqueue(new Callback<BaseResponse>() {
+            @Override
+            public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
+                BefLog.d(TAG,response.body().toString());
+            }
+
+            @Override
+            public void onFailure(Call<BaseResponse> call, Throwable t) {
+            }
+        });
+    }
+
+
+    public static void sendCrash(String stackTrace,Context mcontext) {
+        CrashReport crashReport= new CrashReport(stackTrace);
+        ApiService apiService = ApiClient.getClient(mcontext).create(ApiService.class);
+        Call<BaseResponse> call= apiService.sendCrash(crashReport);
+        call.enqueue(new Callback<BaseResponse>() {
+            @Override
+            public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
+                BefLog.d(TAG,response.body().toString());
+            }
+
+            @Override
+            public void onFailure(Call<BaseResponse> call, Throwable t) {
+            }
+        });
+
     }
 
     private void clearTempData() {

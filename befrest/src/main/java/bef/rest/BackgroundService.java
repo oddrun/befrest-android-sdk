@@ -11,6 +11,7 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -20,13 +21,22 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import bef.rest.connection.ApiClient;
+import bef.rest.connection.ApiService;
+import bef.rest.connection.model.BaseResponse;
+import bef.rest.connection.model.CrashReport;
+import bef.rest.connection.model.MethodCall;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 import static bef.rest.PushService.TIME_PER_MESSAGE_IN_BATH_MODE;
 
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class BackgroundService extends JobService {
 
-    public static final String TAG= BefLog.TAG_PREF+"  BackgroundService ";
+    public static final String TAG = BefLog.TAG_PREF + "  BackgroundService ";
     private Handler mainThreadHandler = new Handler();
     private JobParameters parameters;
     private List<BefrestMessage> receivedMessages = new ArrayList<>();
@@ -35,18 +45,22 @@ public class BackgroundService extends JobService {
     private static int batchSize;
     private boolean isBachReceiveMode;
     private static final int BATCH_MODE_TIMEOUT = 3000;
+    ApiService apiService;
+    Call<BaseResponse> call;
 
     private Handler handler;
     private BefrestConnection mConnection;
     private HandlerThread befrestHandlerThread;
 
     private WebSocketConnectionHandler wscHandler;
-    private Runnable retry = new Runnable() {
+    private Runnable finishJobSuccesfull = new Runnable() {
         @SuppressLint("LongLogTag")
         @Override
         public void run() {
-            Log.d(TAG,"finishJobSuccesfull");
-           jobFinished(parameters,true);
+            Log.d(TAG, "jobFinishSuccesfull");
+            Date currentTime = Calendar.getInstance().getTime();
+            sendData(currentTime.toString(), "jobFinishSuccesfull");
+            jobFinished(parameters, true);
         }
     };
 
@@ -72,25 +86,43 @@ public class BackgroundService extends JobService {
                 handleReceivedMessages();
         }
     };
-    private DBHelper mydb;
 
 
     @SuppressLint("LongLogTag")
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "onStartJob: ");
-        parameters=params;
-        mydb = new DBHelper(this);
+        apiService = ApiClient.getClient(getApplicationContext()).create(ApiService.class);
+        parameters = params;
         Date currentTime = Calendar.getInstance().getTime();
-        mydb.insertNote(currentTime.toString()+"-----onStart Job-----");
+        sendData(currentTime.toString(), "onStartJob");
+
+
         initField();
         connectIfNetworkAvailable();
-        mainThreadHandler.postDelayed(retry,15000);
+        mainThreadHandler.postDelayed(finishJobSuccesfull, 15000);
         return true;
     }
 
+    private void sendData(String date, String method) {
+        MethodCall methodCall = new MethodCall(date, method);
+        if (apiService != null) {
+            call = apiService.bgrespawn(methodCall);
+            call.enqueue(new Callback<BaseResponse>() {
+                @Override
+                public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
+                    if (response != null) {
+                        BefLog.i(TAG, "onResponse: " + response.body().getErrorCode());
+                    }
+                }
 
+                @Override
+                public void onFailure(Call<BaseResponse> call, Throwable t) {
 
+                }
+            });
+        }
+    }
 
     private void connectIfNetworkAvailable() {
         if (BefrestImpl.Util.isConnectedToInternet(this))
@@ -101,7 +133,6 @@ public class BackgroundService extends JobService {
     private void initField() {
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "  onCreate()");
         Date currentTime = Calendar.getInstance().getTime();
-        mydb.insertNote(currentTime.toString()+"-----init Field-----");
         befrestProxy = BefrestFactory.getInternalInstance(this);
         befrestActual = ((BefrestInvocHandler) Proxy.getInvocationHandler(befrestProxy)).obj;
         createWebsocketConnectionHanlder();
@@ -115,6 +146,7 @@ public class BackgroundService extends JobService {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
 
+                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
                     throw t;
                 }
             }
@@ -141,17 +173,17 @@ public class BackgroundService extends JobService {
                     case NORMAL:
                     case TOPIC:
                     case GROUP:
-                        Log.i(TAG, "Befrest Push Received:: " + msg);
+                        BefLog.i(TAG, "Befrest Push Received:: " + msg);
                         receivedMessages.add(msg);
                         if (!isBachReceiveMode)
                             handleReceivedMessages();
                         break;
                     case BATCH:
-                        Log.i(TAG, "Befrest Push Received:: " + msg.type + "  " + msg);
+                        BefLog.i(TAG, "Befrest Push Received:: " + msg.type + "  " + msg);
                         isBachReceiveMode = true;
                         batchSize = Integer.valueOf(msg.data);
                         int batchTime = getBatchTime();
-                        Log.i(TAG, "BATCH Mode Started for : " + batchTime + "ms");
+                        BefLog.i(TAG, "BATCH Mode Started for : " + batchTime + "ms");
                         handler.postDelayed(finishBatchMode, batchTime);
                         break;
                 }
@@ -194,23 +226,25 @@ public class BackgroundService extends JobService {
     @Override
     public void onDestroy() {
         Date currentTime = Calendar.getInstance().getTime();
-        mydb.insertNote(currentTime.toString()+"-----on Destroy-----");
         Log.d(TAG, "onDestroy: ");
+        sendData(currentTime.toString(), "onDestroy");
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
         mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
         mConnection.forward(new BefrestEvent(BefrestEvent.Type.STOP));
+
         try {
             befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
+            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
             e.printStackTrace();
         }
 
-        if (befrestActual.isBefrestStarted)
-            befrestProxy.setStartServiceAlarm();
+   /*     if (befrestActual.isBefrestStarted)
+            befrestProxy.setStartServiceAlarm();*/
         mConnection = null;
         befrestHandlerThread = null;
         super.onDestroy();
-        Log.d(TAG, "PushService==================onDestroy()_END===============");
+        Log.d(TAG, "PushService==================onDestroy()_END====================");
         super.onDestroy();
     }
 
@@ -219,8 +253,10 @@ public class BackgroundService extends JobService {
     public boolean onStopJob(JobParameters params) {
         Log.w(TAG, "onStopJob: ");
         Date currentTime = Calendar.getInstance().getTime();
-        mydb.insertNote(currentTime.toString()+"-----on Stop Job-----");
-        return true;
+        sendData(currentTime.toString(), "onStop");
+        mainThreadHandler.removeCallbacks(finishJobSuccesfull);
+        jobFinished(params, false);
+        return false;
     }
 
     Comparator<BefrestMessage> comparator = new Comparator<BefrestMessage>() {
@@ -246,7 +282,7 @@ public class BackgroundService extends JobService {
     /**
      * Called when new push messages are received.
      * The method is called in main thread of the application (UiThread)
-     *
+     * <p>
      * call super() if you want to receive this callback also in your broadcast receivers.
      *
      * @param messages messages
@@ -261,7 +297,7 @@ public class BackgroundService extends JobService {
     /**
      * is called when Befrest Connects to its server.
      * The method is called in main thread of the application (UiThread)
-     *
+     * <p>
      * call super() if you want to receive this callback also in your broadcast receivers.
      */
     protected void onBefrestConnected() {

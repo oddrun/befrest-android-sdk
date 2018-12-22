@@ -201,6 +201,7 @@ public class PushService extends Service {
     @Override
     public final void onCreate() {
         BefLog.i(TAG, "PushService: " + System.identityHashCode(this) + "  onCreate()");
+
         prevFailedConnectTries = 0;
         befrestProxy = BefrestFactory.getInternalInstance(this);
         befrestActual = ((BefrestInvocHandler) Proxy.getInvocationHandler(befrestProxy)).obj;
@@ -215,14 +216,13 @@ public class PushService extends Service {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-
+                    befrestProxy.sendCrash(t.getMessage());
                     throw t;
                 }
             }
         };
         super.onCreate();
     }
-
     private void createWebsocketConnectionHanlder() {
         wscHandler = new WebSocketConnectionHandler() {
 
