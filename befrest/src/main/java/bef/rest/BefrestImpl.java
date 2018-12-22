@@ -35,6 +35,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 
 import java.util.ArrayList;
@@ -268,6 +269,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         if (topics.length() > 0)
             topics += "-";
         topics += topicName;
+        subscribeFCMTopic(topicName);
         updateTpics(topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
@@ -291,9 +293,28 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             topics += topic;
             currTopics.add(topic);
         }
+        subscribeFCMTopic(topics);
         updateTpics(this.topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
+    }
+
+    private void subscribeFCMTopic(String topics) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN,null)!=null) {
+            List<String> currTopics = new ArrayList<>(Arrays.asList(topics.split("-")));
+            for (String topicName: currTopics) {
+                FirebaseMessaging.getInstance().subscribeToTopic(topicName);
+            }
+        }
+    }
+
+    private void unsubscribeFCMTopic(String topics) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN,null)!=null) {
+            List<String> currTopics = new ArrayList<>(Arrays.asList(topics.split("-")));
+            for (String topicName: currTopics) {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
+            }
+        }
     }
 
     /**
@@ -315,6 +336,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         if (resTopics.length() > 0) resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
+        unsubscribeFCMTopic(topicName);
         return true;
     }
 
@@ -330,6 +352,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
+        unsubscribeFCMTopic(resTopics);
         return this;
     }
 

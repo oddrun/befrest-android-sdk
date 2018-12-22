@@ -36,6 +36,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -213,6 +214,7 @@ class BefrestConnection extends Handler {
                     return;
                 }
                 Toast.makeText(appContext, task.getResult().getToken(), Toast.LENGTH_SHORT).show();
+                FirebaseMessaging.getInstance().subscribeToTopic("example");
                 sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN,null),task.getResult().getToken());
             }
         });
