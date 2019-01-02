@@ -69,7 +69,7 @@ import static bef.rest.BefrestPrefrences.saveToPrefs;
 /**
  * Main class to interact with BefrestImpl service.
  */
-final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate {
+final class BefrestImpl implements Befrest, BefrestInternal {
     private static String TAG = BefLog.TAG_PREF + "BefrestImpl";
 
     static final int START_ALARM_CODE = 676428;
@@ -83,9 +83,9 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
-        BefrestAppLifeCycle befrestAppLifeCycle = new BefrestAppLifeCycle(this);
+      /*  BefrestAppLifeCycle befrestAppLifeCycle = new BefrestAppLifeCycle(this);
         context.registerComponentCallbacks(befrestAppLifeCycle);
-        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
+        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);*/
         chId = prefs.getString(PREF_CH_ID, null);
         prefs.getString(PREF_LAST_STATE, null);
         auth = prefs.getString(PREF_AUTH, null);
@@ -617,16 +617,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
     }
 
-    @Override
-    public void onAppForeGrounded() {
-        start();
-        Log.i(TAG, "onAppForeGrounded: ");
-    }
 
-    @Override
-    public void onAppBackground() {
-        Log.i(TAG, "onAppBackground: ");
-    }
 
     class BefrestException extends RuntimeException {
         public BefrestException() {

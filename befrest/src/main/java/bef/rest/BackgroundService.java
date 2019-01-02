@@ -239,8 +239,6 @@ public class BackgroundService extends JobService {
             e.printStackTrace();
         }
 
-   /*     if (befrestActual.isBefrestStarted)
-            befrestProxy.setStartServiceAlarm();*/
         mConnection = null;
         befrestHandlerThread = null;
         Log.d(TAG, "PushService==================onDestroy()_END====================");

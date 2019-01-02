@@ -197,27 +197,6 @@ class BefrestConnection extends Handler {
         BefLog.i(TAG, "lastReceivedMessages: " + lastReceivedMesseges);
     }
 
-    /**
-     * setUpFireBase and get Token
-     */
-    private void setupFireBase() {
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                if (!task.isSuccessful()) {
-                    BefLog.i(TAG, "FCM Token Does Not Received ");
-                    return;
-                }
-                 /*
-                   pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
-                  */
-                BefLog.i(TAG, task.getResult().getToken());
-                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
-            }
-        });
-    }
-
     private void setKeepPingingAlarm(int pingDelay) {
         int delay = (pingDelay * 2) + 60000;
         AlarmManager alarmMgr = (AlarmManager) appContext.getSystemService(Context.ALARM_SERVICE);
@@ -285,41 +264,6 @@ class BefrestConnection extends Handler {
             BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
-
-    /**
-     * check PrevToken and NewToken To Store and Write on WebSocket
-     *
-     * @param prevToken stored in sharedPref
-     * @param newToken  received from FCM
-     */
-
-    private void sendFCMToken(String prevToken, String newToken) {
-        if (prevToken == null)
-            prevToken = "";
-        if (prevToken.equals(newToken))
-            return;
-        try {
-            if (mWriter != null) {
-                mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken, newToken)));
-                BefrestPrefrences.saveString(appContext, PREF_FCM_TOKEN, newToken);
-                BefLog.i(TAG, " FCM token : " + prevToken);
-            } else {
-                BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send ack message)");
-            }
-        } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
-        }
-    }
-
-    /**
-     * Build String For Write OnWebSocket
-     *
-     * @return "prevToken"~"newToken"
-     */
-    private String FCMTokenBuilder(String prevToken, String newToken) {
-        return String.format("%s~%s", prevToken, newToken);
-    }
-
     private void handleMsgFromReaderWriter(WebSocketMessage.Message msg) {
         BefLog.i(TAG, msg.toString());
         if (msg instanceof WebSocketMessage.TextMessage) {
@@ -430,7 +374,6 @@ class BefrestConnection extends Handler {
         switch (e.type) {
             case CONNECT:
                 connect();
-                checkGooglePlayService(appContext);
                 break;
             case DISCONNECT:
                 disconnect();
@@ -452,20 +395,7 @@ class BefrestConnection extends Handler {
         }
     }
 
-    /**
-     * check IsDeviceSupportGooglePlayService or Not
-     *
-     * @return status if availabe or not
-     */
-    private boolean checkGooglePlayService(Context appContext) {
-        final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(appContext);
-        if (status == ConnectionResult.SUCCESS) {
-            setupFireBase();
-            return true;
-        }
-        BefLog.e(TAG, "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
-        return false;
-    }
+
 
     private void refresh() {
         BefLog.i(TAG, "refresh: ");
