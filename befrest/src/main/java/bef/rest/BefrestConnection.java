@@ -30,13 +30,13 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
-import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
-import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -46,7 +46,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Objects;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -56,23 +55,22 @@ import javax.net.ssl.SSLSocketFactory;
 import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
 import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
 import static bef.rest.BefrestPrefrences.getPrefs;
-import static bef.rest.BefrestPrefrences.saveString;
 
 class BefrestConnection extends Handler {
     private static final String TAG = BefLog.TAG_PREF + "BefrestConnection";
 
-    PowerManager.WakeLock connectWakelock;
-    public static final String connectWakeLockName = "befrstconnectwakelock";
+    private PowerManager.WakeLock connectWakelock;
+    private static final String connectWakeLockName = "befrstconnectwakelock";
 
-    Looper mLooper;
-    Context appContext;
+    private Looper mLooper;
+    private Context appContext;
 
-    Class<?> pushService;
+    private Class<?> pushService;
 
-    protected WebSocketReader mReader;
-    protected WebSocketWriter mWriter;
-    protected HandlerThread mWriterThread;
-    protected Socket mTransportChannel;
+    private WebSocketReader mReader;
+    private WebSocketWriter mWriter;
+    private HandlerThread mWriterThread;
+    private Socket mTransportChannel;
     private String mWsScheme;
     private String mWsHost;
     private int mWsPort;
@@ -81,7 +79,7 @@ class BefrestConnection extends Handler {
     private String[] mWsSubprotocols;
     private List<NameValuePair> mWsHeaders;
     private WebSocket.ConnectionHandler mWsHandler;
-    protected WebSocketOptions mOptions;
+    private WebSocketOptions mOptions;
     private MessageIdPersister lastReceivedMesseges;
 
     private boolean refreshRequested;
@@ -188,8 +186,6 @@ class BefrestConnection extends Handler {
     }
 
 
-
-
     public BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
         super(looper);
         this.mLooper = looper;
@@ -202,25 +198,27 @@ class BefrestConnection extends Handler {
     }
 
     /**
-     * set up firebase for get token
+     * setUpFireBase and get Token
      */
-    public void setupFireBase() {
+    private void setupFireBase() {
         FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onComplete(@NonNull Task<InstanceIdResult> task) {
                 if (!task.isSuccessful()) {
-
+                    BefLog.i(TAG, "FCM Token Does Not Received ");
                     return;
                 }
-                Toast.makeText(appContext, task.getResult().getToken(), Toast.LENGTH_SHORT).show();
-                FirebaseMessaging.getInstance().subscribeToTopic("example");
-                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN,null),task.getResult().getToken());
+                 /*
+                   pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
+                  */
+                BefLog.i(TAG, task.getResult().getToken());
+                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
             }
         });
     }
 
-    public void setKeepPingingAlarm(int pingDelay) {
+    private void setKeepPingingAlarm(int pingDelay) {
         int delay = (pingDelay * 2) + 60000;
         AlarmManager alarmMgr = (AlarmManager) appContext.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(appContext, pushService).putExtra(PushService.KEEP_PINGING, true);
@@ -230,7 +228,7 @@ class BefrestConnection extends Handler {
         BefLog.i(TAG, "KeepPinging alarm set for " + delay + " ms");
     }
 
-    public void cancelKeepPingingAlarm() {
+    private void cancelKeepPingingAlarm() {
         AlarmManager alarmMgr = (AlarmManager) appContext.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(appContext, pushService).putExtra(PushService.KEEP_PINGING, true);
         PendingIntent pi = PendingIntent.getService(appContext, BefrestImpl.KEEP_PINGING_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -265,7 +263,7 @@ class BefrestConnection extends Handler {
         }
     }
 
-    public void forward(Object message) {
+    void forward(Object message) {
         Message msg = obtainMessage();
         msg.obj = message;
         sendMessage(msg);
@@ -288,18 +286,23 @@ class BefrestConnection extends Handler {
         }
     }
 
+    /**
+     * check PrevToken and NewToken To Store and Write on WebSocket
+     *
+     * @param prevToken stored in sharedPref
+     * @param newToken  received from FCM
+     */
+
     private void sendFCMToken(String prevToken, String newToken) {
-        if (prevToken==null)
-            prevToken="";
+        if (prevToken == null)
+            prevToken = "";
         if (prevToken.equals(newToken))
             return;
-
-        BefLog.w(TAG,FCMTokenBuilder(prevToken,newToken));
         try {
             if (mWriter != null) {
-                mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken,newToken)));
-                BefrestPrefrences.saveString(appContext,PREF_FCM_TOKEN,newToken);
-                BefLog.w(TAG, "Ack FCM token : " + prevToken);
+                mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken, newToken)));
+                BefrestPrefrences.saveString(appContext, PREF_FCM_TOKEN, newToken);
+                BefLog.i(TAG, " FCM token : " + prevToken);
             } else {
                 BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send ack message)");
             }
@@ -308,12 +311,16 @@ class BefrestConnection extends Handler {
         }
     }
 
+    /**
+     * Build String For Write OnWebSocket
+     *
+     * @return "prevToken"~"newToken"
+     */
     private String FCMTokenBuilder(String prevToken, String newToken) {
-        return String.format("%s~%s",prevToken,newToken);
+        return String.format("%s~%s", prevToken, newToken);
     }
 
-
-    public void handleMsgFromReaderWriter(WebSocketMessage.Message msg) {
+    private void handleMsgFromReaderWriter(WebSocketMessage.Message msg) {
         BefLog.i(TAG, msg.toString());
         if (msg instanceof WebSocketMessage.TextMessage) {
             WebSocketMessage.TextMessage textMessage = (WebSocketMessage.TextMessage) msg;
@@ -419,11 +426,11 @@ class BefrestConnection extends Handler {
         releaseConnectWakeLockIfNeeded();
     }
 
-    public void handleBefrestEvent(BefrestEvent e) {
+    private void handleBefrestEvent(BefrestEvent e) {
         switch (e.type) {
             case CONNECT:
                 connect();
-                setupFireBase();
+                checkGooglePlayService(appContext);
                 break;
             case DISCONNECT:
                 disconnect();
@@ -445,6 +452,21 @@ class BefrestConnection extends Handler {
         }
     }
 
+    /**
+     * check IsDeviceSupportGooglePlayService or Not
+     *
+     * @return status if availabe or not
+     */
+    private boolean checkGooglePlayService(Context appContext) {
+        final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(appContext);
+        if (status == ConnectionResult.SUCCESS) {
+            setupFireBase();
+            return true;
+        }
+        BefLog.e(TAG, "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
+        return false;
+    }
+
     private void refresh() {
         BefLog.i(TAG, "refresh: ");
         refreshRequested = true;
@@ -453,7 +475,6 @@ class BefrestConnection extends Handler {
             cancelFuturePing();
             cancelUpcommingRestart();
             if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
-                BefLog.i(TAG, "refresh: inn if");
                 setNextPingToSendInFuture(0);
             }
 
@@ -470,7 +491,7 @@ class BefrestConnection extends Handler {
         }
     }
 
-    public void connect() {
+    private void connect() {
         BefLog.i(TAG, "--------------------------connect()_START-----------------------------");
         if (isConnected()) {
             BefLog.i(TAG, "already connected!");
@@ -552,7 +573,7 @@ class BefrestConnection extends Handler {
     /**
      * Create WebSockets background writer.
      */
-    protected void createWriter() {
+    private void createWriter() {
         mWriterThread = new HandlerThread("WebSocketWriter");
         mWriterThread.start();
         mWriter = new WebSocketWriter(mWriterThread.getLooper(), this, mTransportChannel, mOptions, appContext);
@@ -563,7 +584,7 @@ class BefrestConnection extends Handler {
     /**
      * Create WebSockets background reader.
      */
-    protected void createReader() {
+    private void createReader() {
         mReader = new WebSocketReader(this, mTransportChannel, mOptions, "WebSocketReader", appContext);
         mReader.start();
         BefLog.i(TAG, "WS reader created and started");
@@ -645,7 +666,7 @@ class BefrestConnection extends Handler {
         BefLog.i(TAG, "--------------------------disconnect()_END--------------------");
     }
 
-    public boolean isConnected() {
+    private boolean isConnected() {
         boolean res = mTransportChannel != null && mTransportChannel.isConnected() && !mTransportChannel.isClosed();
         return res;
     }
@@ -662,7 +683,7 @@ class BefrestConnection extends Handler {
                 connectWakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, connectWakeLockName);
                 connectWakelock.setReferenceCounted(false);
             }
-            connectWakelock.acquire();
+            connectWakelock.acquire(10 * 60 * 1000L /*10 minutes*/);
             BefLog.i(TAG, "connectWakeLock acquired.");
         } else
             BefLog.i(TAG, "could not acquire connect wakelock. (permission not granted)");
@@ -681,8 +702,10 @@ class BefrestConnection extends Handler {
      * Returns true if {@code e} is due to a firmware bug fixed after Android 4.2.2.
      * https://code.google.com/p/android/issues/detail?id=54072
      */
-    static boolean isAndroidGetsocknameError(AssertionError e) {
+    private static boolean isAndroidGetsocknameError(AssertionError e) {
         return e.getCause() != null && e.getMessage() != null
                 && e.getMessage().contains("getsockname failed");
     }
+
+
 }

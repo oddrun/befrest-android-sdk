@@ -16,6 +16,7 @@
 package bef.rest;
 
 import android.app.AlarmManager;
+import android.app.Application;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
@@ -27,17 +28,12 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,13 +47,29 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import static bef.rest.BefrestPrefrences.*;
+import static bef.rest.BefrestPrefrences.PREF_AUTH;
+import static bef.rest.BefrestPrefrences.PREF_CH_ID;
+import static bef.rest.BefrestPrefrences.PREF_CONNECT_ANOMALY_DATA_RECORDING_TIME;
+import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES;
+import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES_TYPES;
+import static bef.rest.BefrestPrefrences.PREF_CUSTOM_PUSH_SERVICE_NAME;
+import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
+import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
+import static bef.rest.BefrestPrefrences.PREF_LAST_SUCCESSFUL_CONNECT_TIME;
+import static bef.rest.BefrestPrefrences.PREF_LOG_LEVEL;
+import static bef.rest.BefrestPrefrences.PREF_TOPICS;
+import static bef.rest.BefrestPrefrences.PREF_U_ID;
+import static bef.rest.BefrestPrefrences.getPrefs;
+import static bef.rest.BefrestPrefrences.saveInt;
+import static bef.rest.BefrestPrefrences.saveLong;
+import static bef.rest.BefrestPrefrences.saveString;
+import static bef.rest.BefrestPrefrences.saveToPrefs;
 
 
 /**
  * Main class to interact with BefrestImpl service.
  */
-final class BefrestImpl implements Befrest, BefrestInternal {
+final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate {
     private static String TAG = BefLog.TAG_PREF + "BefrestImpl";
 
     static final int START_ALARM_CODE = 676428;
@@ -71,6 +83,9 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
+        BefrestAppLifeCycle befrestAppLifeCycle = new BefrestAppLifeCycle(this);
+        context.registerComponentCallbacks(befrestAppLifeCycle);
+        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
         chId = prefs.getString(PREF_CH_ID, null);
         prefs.getString(PREF_LAST_STATE, null);
         auth = prefs.getString(PREF_AUTH, null);
@@ -95,18 +110,18 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     Context context;
     Class<?> pushService;
 
-    long uId;
-    String chId;
-    String auth;
-    int logLevel;
+    private long uId;
+    private String chId;
+    private String auth;
+    private int logLevel;
     boolean isBefrestStarted;
-    String topics;
-    boolean connectionDataChangedSinceLastStart;
+    private String topics;
+    private boolean connectionDataChangedSinceLastStart;
 
     boolean refreshIsRequested = false;
-    long lastAcceptedRefreshRequestTime = 0;
+    private long lastAcceptedRefreshRequestTime = 0;
 
-    long connectAnomalyDataRecordingStartTime;
+    private long connectAnomalyDataRecordingStartTime;
 
     private static final int[] AuthProblemBroadcastDelay = {0, 60 * 1000, 240 * 1000, 600 * 1000};
     int prevAuthProblems = 0;
@@ -120,7 +135,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     private List<NameValuePair> subscribeHeaders;
     private NameValuePair authHeader, fcmHeader;
 
-
     /**
      * Initialize push receive service. You can also use setter messages for initializing.
      *
@@ -131,9 +145,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
     public Befrest init(long uId, String auth, String chId) {
         if (chId == null || !(chId.length() > 0))
             throw new BefrestException("invalid chId!");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        }
         if (uId != this.uId || (auth != null && !auth.equals(this.auth)) || !chId.equals(this.chId)) {
             this.uId = uId;
             this.auth = auth;
@@ -205,7 +216,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         return this;
     }
 
-
     /**
      * Start push service. You should set uId and chId before calling this start.
      * Best Practice: call this method in your onCreate() method of your Application class
@@ -215,7 +225,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
      */
 
     public void start() {
-
         BefLog.i(TAG, "starting befrest");
         if (uId < 0 || chId == null || chId.length() < 1)
             throw new BefrestException("uId and chId are not properly defined!");
@@ -236,17 +245,14 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         }
     }
 
-    public static void startService(Class<?> pushService, Context context, String flag) {
+    static void startService(Class<?> pushService, Context context, String flag) {
         try {
             Intent intent = new Intent(context, pushService);
             intent.putExtra(flag, true);
             context.startService(intent);
-        } catch (RuntimeException e) {
+        } catch (IllegalStateException e) {
 
-            throw e;
         }
-
-
     }
 
     /**
@@ -258,9 +264,21 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         context.stopService(new Intent(context, pushService));
         Util.disableConnectivityChangeListener(context);
         BefLog.i(TAG, "BefrestImpl Service Stopped.");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    FirebaseInstanceId.getInstance().deleteInstanceId();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        BefrestPrefrences.removePrefs(context);
     }
 
     public Befrest addTopic(String topicName) {
+        BefLog.i(TAG, "addTopic: " + topicName);
         if (topicName == null || topicName.length() < 1 || !topicName.matches("[A-Za-z0-9]+"))
             throw new BefrestException("topic name should be an alpha-numeric string!");
         for (String s : topics.split("-"))
@@ -293,47 +311,66 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             topics += topic;
             currTopics.add(topic);
         }
-        subscribeFCMTopic(topics);
+        subscribeFCMTopics(topics);
         updateTpics(this.topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
     }
 
-    private void subscribeFCMTopic(String topics) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN,null)!=null) {
+    /**
+     * subscribe  param in FCM
+     *
+     * @param topics
+     */
+    private void subscribeFCMTopics(String topics) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null) {
             List<String> currTopics = new ArrayList<>(Arrays.asList(topics.split("-")));
-            for (String topicName: currTopics) {
+            for (String topicName : currTopics) {
                 FirebaseMessaging.getInstance().subscribeToTopic(topicName);
             }
         }
     }
 
-    private void unsubscribeFCMTopic(String topics) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN,null)!=null) {
-            List<String> currTopics = new ArrayList<>(Arrays.asList(topics.split("-")));
-            for (String topicName: currTopics) {
+    private void subscribeFCMTopic(String topicName) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
+            FirebaseMessaging.getInstance().subscribeToTopic(topicName);
+    }
+
+    /**
+     * unsubscribe param in FCM
+     *
+     * @param topicName to unsub
+     */
+    private void unsubscribeFCMTopic(String topicName) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
+            FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
+    }
+
+    private void unsubscribeFCMTopics(List<String> removeTopic) {
+        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null) {
+            for (String topicName : removeTopic) {
                 FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
             }
         }
     }
-
     /**
      * remove a topic from current topics that user has.
      *
      * @param topicName Name of topic to be removed
      */
     public boolean removeTopic(String topicName) {
-        String[] splitedTopics = topics.split("-");
+        String[] splittedTopics = topics.split("-");
         boolean found = false;
         String resTopics = "";
-        for (String splitedTopic : splitedTopics) {
-            if (splitedTopic.equals(topicName))
+        for (String splittedTopic : splittedTopics) {
+            if (splittedTopic.equals(topicName))
                 found = true;
-            else resTopics += splitedTopic + "-";
+            else resTopics += splittedTopic + "-";
         }
         if (!found)
             return false;
-        if (resTopics.length() > 0) resTopics = resTopics.substring(0, resTopics.length() - 1);
+        if (resTopics.length() > 0)
+            resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
         unsubscribeFCMTopic(topicName);
@@ -352,7 +389,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
-        unsubscribeFCMTopic(resTopics);
+        unsubscribeFCMTopics(toRemove);
         return this;
     }
 
@@ -434,7 +471,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
 
     public void setStartServiceAlarm() {
-
         BefLog.i(TAG, "setStartServiceAlarm: ");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             saveString(context, PREF_LAST_STATE, "true");
@@ -473,7 +509,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         });
     }
 
-
     public static void sendCrash(String stackTrace, Context mcontext) {
         CrashReport crashReport = new CrashReport(stackTrace);
         ApiService apiService = ApiClient.getClient(mcontext).create(ApiService.class);
@@ -505,13 +540,14 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         return subscribeUrl;
     }
 
-    public NameValuePair hasFCMToken() {
+    private NameValuePair hasFCMToken() {
         if (getPrefs(context).getString(PREF_FCM_TOKEN, null) == null) {
             fcmHeader = new NameValuePair("X-BF-FCM", "0");
         }
         fcmHeader = new NameValuePair("X-BF-FCM", "1");
         return fcmHeader;
     }
+
     public List<NameValuePair> getSubscribeHeaders() {
         if (subscribeHeaders == null) {
             subscribeHeaders = new ArrayList<>();
@@ -581,11 +617,22 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
     }
 
+    @Override
+    public void onAppForeGrounded() {
+        start();
+        Log.i(TAG, "onAppForeGrounded: ");
+    }
+
+    @Override
+    public void onAppBackground() {
+        Log.i(TAG, "onAppBackground: ");
+    }
+
     class BefrestException extends RuntimeException {
         public BefrestException() {
         }
 
-        public BefrestException(String detailMessage) {
+        BefrestException(String detailMessage) {
             super(detailMessage);
         }
 

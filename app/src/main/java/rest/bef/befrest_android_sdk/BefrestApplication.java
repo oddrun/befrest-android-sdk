@@ -10,7 +10,8 @@ public class BefrestApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i("BEFRESTAPP", "--------------------------onCreate:------------------------");
-
+        Log.i("BEFRESTAPP", "------------------------------onCreate:------------------------------");
+        BefrestFactory.getInstance(this)
+                .init(12013, "CmLxC9DVztyi-pxi54xZKA", "quickstartchannel");
     }
 }

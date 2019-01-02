@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="rest.bef.befrest_android_sdk">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -7,19 +8,22 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <permission android:protectionLevel="signature" android:name="rest.bef.befrest_android_sdk.permission.PUSH_SERVICE" />
+
+    <permission
+        android:name="rest.bef.befrest_android_sdk.permission.PUSH_SERVICE"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="rest.bef.befrest_android_sdk.permission.PUSH_SERVICE" />
 
-
-
     <application
+        android:name=".BefrestApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:name=".BefrestApplication"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:ignore="GoogleAppIndexingWarning">
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,12 +32,6 @@
             </intent-filter>
         </activity>
 
-        <service android:name="bef.rest.PushService" />
-
-        <service
-            android:name="bef.rest.BackgroundService"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:exported="true"/>
 
         <service android:name="bef.rest.MyFirebaseMessagingService">
             <intent-filter>
@@ -42,23 +40,23 @@
         </service>
 
         <receiver
-            android:name="bef.rest.BefrestConnectivityChangeReceiver"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
             android:name=".PushReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="bef.rest.broadcasts.ACTION_BEFREST_PUSH"/>
+                <action android:name="bef.rest.broadcasts.ACTION_BEFREST_PUSH" />
             </intent-filter>
         </receiver>
+
+
+        <activity android:name=".Main2Activity">
+
+            <intent-filter>
+                <action android:name="actionX" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+        </activity>
     </application>
-
-
 
 </manifest>

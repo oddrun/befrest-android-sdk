@@ -11,7 +11,6 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.List;
 import bef.rest.connection.ApiClient;
 import bef.rest.connection.ApiService;
 import bef.rest.connection.model.BaseResponse;
-import bef.rest.connection.model.CrashReport;
 import bef.rest.connection.model.MethodCall;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -132,7 +130,6 @@ public class BackgroundService extends JobService {
     @SuppressLint("LongLogTag")
     private void initField() {
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "  onCreate()");
-        Date currentTime = Calendar.getInstance().getTime();
         befrestProxy = BefrestFactory.getInternalInstance(this);
         befrestActual = ((BefrestInvocHandler) Proxy.getInvocationHandler(befrestProxy)).obj;
         createWebsocketConnectionHanlder();
@@ -229,11 +226,14 @@ public class BackgroundService extends JobService {
         Log.d(TAG, "onDestroy: ");
         sendData(currentTime.toString(), "onDestroy");
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
-        mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
-        mConnection.forward(new BefrestEvent(BefrestEvent.Type.STOP));
+        if (mConnection != null) {
+            mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
+            mConnection.forward(new BefrestEvent(BefrestEvent.Type.STOP));
+        }
 
         try {
-            befrestHandlerThread.join(1000);
+            if (befrestHandlerThread != null)
+                befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
             BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
             e.printStackTrace();
@@ -243,7 +243,6 @@ public class BackgroundService extends JobService {
             befrestProxy.setStartServiceAlarm();*/
         mConnection = null;
         befrestHandlerThread = null;
-        super.onDestroy();
         Log.d(TAG, "PushService==================onDestroy()_END====================");
         super.onDestroy();
     }

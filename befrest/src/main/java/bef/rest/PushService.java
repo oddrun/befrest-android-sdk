@@ -42,23 +42,12 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.util.Log;
-import android.widget.Toast;
-
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
-import static bef.rest.BefrestPrefrences.saveString;
 
 public class PushService extends Service {
     private static final String TAG = BefLog.TAG_PREF + "PushService";

@@ -16,11 +16,11 @@
 
 package bef.rest;
 
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Parcelable;
-import android.util.Log;
 
 /**
  * Override this class to make register receivers. You can register receivers
@@ -33,14 +33,15 @@ public abstract class BefrestPushReceiver extends BroadcastReceiver {
     static final int UNAUTHORIZED = 1;
     static final int CONNECTION_REFRESHED = 2;
     static final int BEFREST_CONNECTED = 3;
+    static final int CANCEL_NOTIFICATION = 101;
     static final String BROADCAST_TYPE = "BROADCAST_TYPE";
     static final String ACTION_BEFREST_PUSH = "bef.rest.broadcasts.ACTION_BEFREST_PUSH";
     static final String KEY_TIME_SENT = "KEY_TIME_SENT";
 
     @Override
     public final void onReceive(Context context, Intent intent) {
-        BefLog.i(TAG, "onReceive: ");
         int type = intent.getIntExtra(BROADCAST_TYPE, -1);
+        BefLog.i(TAG, "onReceive: " + type);
         String timeSent = intent.getStringExtra(KEY_TIME_SENT);
         BefLog.w(TAG, "Broadcast Received :: type: " + type + "      timeSent:" + timeSent);
         switch (type) {
@@ -59,9 +60,17 @@ public abstract class BefrestPushReceiver extends BroadcastReceiver {
             case BEFREST_CONNECTED:
                 onBefrestConnected(context);
                 break;
+            case CANCEL_NOTIFICATION:
+                cancelNotification(context);
+                break;
             default:
                 BefLog.e(TAG, "BefrestImpl Internal ERROR! Unknown BefrestImpl Action!!");
         }
+    }
+
+    private void cancelNotification(Context context) {
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.cancel(CANCEL_NOTIFICATION);
     }
 
     /**
@@ -71,7 +80,6 @@ public abstract class BefrestPushReceiver extends BroadcastReceiver {
      * @param messages messages
      */
     abstract public void onPushReceived(Context context, BefrestMessage[] messages);
-
 
     /**
      * Called when there is a problem with your Authentication token. The Service encounters authorization errors while trying to connect ro BefrestImpl servers.

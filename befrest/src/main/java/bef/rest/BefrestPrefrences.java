@@ -80,4 +80,11 @@ class BefrestPrefrences {
         prefEditor.putString(PREF_CH_ID, chId);
         prefEditor.apply();
     }
+
+    static void removePrefs(Context context) {
+        SharedPreferences.Editor editor = getPrefs(context).edit();
+        editor.clear();
+        editor.apply();
+
+    }
 }

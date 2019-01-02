@@ -9,17 +9,12 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
 import java.util.Random;
 
 import bef.rest.BefrestFactory;
 import rest.bef.befrest_android_sdk.connection.ApiClient;
 import rest.bef.befrest_android_sdk.connection.ApiService;
-import rest.bef.befrest_android_sdk.connection.model.Entity;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,9 +29,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        init();
+        /* init();*/
+/*
 
-
+        Log.i(TAG, "onCreate: " + getIntent().hasExtra("field1"));
 
         if (auth == null) {
             Call<Entity> entityCall = apiService.getAuth(chid);
@@ -46,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
                     if (response != null) {
                         Toast.makeText(MainActivity.this, "Auth Token Received : " + response.body().getEntity(), Toast.LENGTH_SHORT).show();
                         auth = response.body().getEntity();
-                        initBefrest();
+                        //initBefrest();
                         saveAuth();
                     }
                 }
@@ -57,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         } else
-            initBefrest();
+            //initBefrest();
+        return;*/
 
     }
 
