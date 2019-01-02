@@ -16,7 +16,6 @@
 package bef.rest;
 
 import android.app.AlarmManager;
-import android.app.Application;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
@@ -28,12 +27,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.util.Log;
 
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.messaging.FirebaseMessaging;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,7 +47,6 @@ import static bef.rest.BefrestPrefrences.PREF_CONNECT_ANOMALY_DATA_RECORDING_TIM
 import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES;
 import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES_TYPES;
 import static bef.rest.BefrestPrefrences.PREF_CUSTOM_PUSH_SERVICE_NAME;
-import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
 import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
 import static bef.rest.BefrestPrefrences.PREF_LAST_SUCCESSFUL_CONNECT_TIME;
 import static bef.rest.BefrestPrefrences.PREF_LOG_LEVEL;
@@ -133,7 +126,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
 
     private String subscribeUrl;
     private List<NameValuePair> subscribeHeaders;
-    private NameValuePair authHeader, fcmHeader;
+    private NameValuePair authHeader;
 
     /**
      * Initialize push receive service. You can also use setter messages for initializing.
@@ -264,16 +257,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         context.stopService(new Intent(context, pushService));
         Util.disableConnectivityChangeListener(context);
         BefLog.i(TAG, "BefrestImpl Service Stopped.");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    FirebaseInstanceId.getInstance().deleteInstanceId();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
         BefrestPrefrences.removePrefs(context);
     }
 
@@ -287,7 +270,7 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         if (topics.length() > 0)
             topics += "-";
         topics += topicName;
-        subscribeFCMTopic(topicName);
+
         updateTpics(topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
@@ -311,47 +294,10 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             topics += topic;
             currTopics.add(topic);
         }
-        subscribeFCMTopics(topics);
+
         updateTpics(this.topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
-    }
-
-    /**
-     * subscribe  param in FCM
-     *
-     * @param topics
-     */
-    private void subscribeFCMTopics(String topics) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null) {
-            List<String> currTopics = new ArrayList<>(Arrays.asList(topics.split("-")));
-            for (String topicName : currTopics) {
-                FirebaseMessaging.getInstance().subscribeToTopic(topicName);
-            }
-        }
-    }
-
-    private void subscribeFCMTopic(String topicName) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
-            FirebaseMessaging.getInstance().subscribeToTopic(topicName);
-    }
-
-    /**
-     * unsubscribe param in FCM
-     *
-     * @param topicName to unsub
-     */
-    private void unsubscribeFCMTopic(String topicName) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
-            FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
-    }
-
-    private void unsubscribeFCMTopics(List<String> removeTopic) {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null) {
-            for (String topicName : removeTopic) {
-                FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
-            }
-        }
     }
     /**
      * remove a topic from current topics that user has.
@@ -373,7 +319,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
-        unsubscribeFCMTopic(topicName);
         return true;
     }
 
@@ -389,7 +334,6 @@ final class BefrestImpl implements Befrest, BefrestInternal {
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
-        unsubscribeFCMTopics(toRemove);
         return this;
     }
 
@@ -540,19 +484,12 @@ final class BefrestImpl implements Befrest, BefrestInternal {
         return subscribeUrl;
     }
 
-    private NameValuePair hasFCMToken() {
-        if (getPrefs(context).getString(PREF_FCM_TOKEN, null) == null) {
-            fcmHeader = new NameValuePair("X-BF-FCM", "0");
-        }
-        fcmHeader = new NameValuePair("X-BF-FCM", "1");
-        return fcmHeader;
-    }
 
     public List<NameValuePair> getSubscribeHeaders() {
         if (subscribeHeaders == null) {
             subscribeHeaders = new ArrayList<>();
             subscribeHeaders.add(getAuthHeader());
-            subscribeHeaders.add(hasFCMToken());
+
             if (topics != null && topics.length() > 0)
                 subscribeHeaders.add(new NameValuePair("X-BF-TOPICS", topics));
         }
