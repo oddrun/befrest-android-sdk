@@ -7,9 +7,6 @@ def libraryVersion = '1.0.0'
 
 android {
     compileSdkVersion 28
-
-
-
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 28
@@ -37,8 +34,7 @@ task jar(type: Jar, dependsOn: 'assembleRelease') {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    //noinspection GradleCompatible
+  //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:28.0.0-rc02'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
@@ -48,20 +44,38 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp:3.0.1"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:3.0.1"
     implementation "com.squareup.okhttp3:logging-interceptor:3.4.1"
-    implementation 'com.google.firebase:firebase-messaging:17.3.4'
-    implementation 'com.google.firebase:firebase-core:16.0.6'
+
 }
 
 publishing {
     publications {
         aar(MavenPublication) {
-//            from components.android
-//            groupId packageName
-//            version = libraryVersion
+            from components.android
+            groupId packageName
+            version = libraryVersion
             artifactId project.getName()
 
             // Tell maven to prepare the generated "*.aar" file for publishing
             artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+        }
+    }
+}
+artifactory {
+    contextUrl = 'https://maven.oddrun.ir/artifactory'
+    publish {
+        repository {
+            repoKey = 'befrest'
+            username = "${artifactory_username}"
+            password = "${artifactory_password}"
+        }
+        defaults {
+            publications('aar')
+            publishArtifacts = true
+
+            // Properties to be attached to the published artifacts.
+            properties = ['qa.level': 'basic', 'dev.team': 'core']
+            // Publish generated POM files to Artifactory (true by default)
+            publishPom = true
         }
     }
 }

@@ -241,7 +241,7 @@ public class BackgroundService extends JobService {
 
         mConnection = null;
         befrestHandlerThread = null;
-        Log.d(TAG, "PushService==================onDestroy()_END====================");
+        Log.d(TAG, "PushService==================onDestroy()_END==============================");
         super.onDestroy();
     }
 
@@ -252,8 +252,7 @@ public class BackgroundService extends JobService {
         Date currentTime = Calendar.getInstance().getTime();
         sendData(currentTime.toString(), "onStop");
         mainThreadHandler.removeCallbacks(finishJobSuccesfull);
-        jobFinished(params, false);
-        return false;
+        return true;
     }
 
     Comparator<BefrestMessage> comparator = new Comparator<BefrestMessage>() {
