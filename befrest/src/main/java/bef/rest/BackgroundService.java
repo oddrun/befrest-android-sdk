@@ -20,14 +20,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-import bef.rest.connection.ApiClient;
-import bef.rest.connection.ApiService;
-import bef.rest.connection.model.BaseResponse;
-import bef.rest.connection.model.MethodCall;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 import static bef.rest.PushService.TIME_PER_MESSAGE_IN_BATH_MODE;
 
 
@@ -43,8 +35,7 @@ public class BackgroundService extends JobService {
     private static int batchSize;
     private boolean isBachReceiveMode;
     private static final int BATCH_MODE_TIMEOUT = 3000;
-    ApiService apiService;
-    Call<BaseResponse> call;
+
 
     private Handler handler;
     private BefrestConnection mConnection;
@@ -90,7 +81,7 @@ public class BackgroundService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "onStartJob: ");
-        apiService = ApiClient.getClient(getApplicationContext()).create(ApiService.class);
+
         parameters = params;
         Date currentTime = Calendar.getInstance().getTime();
         sendData(currentTime.toString(), "onStartJob");
@@ -103,23 +94,7 @@ public class BackgroundService extends JobService {
     }
 
     private void sendData(String date, String method) {
-        MethodCall methodCall = new MethodCall(date, method);
-        if (apiService != null) {
-            call = apiService.bgrespawn(methodCall);
-            call.enqueue(new Callback<BaseResponse>() {
-                @Override
-                public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
-                    if (response != null) {
-                        BefLog.i(TAG, "onResponse: " + response.body().getErrorCode());
-                    }
-                }
 
-                @Override
-                public void onFailure(Call<BaseResponse> call, Throwable t) {
-
-                }
-            });
-        }
     }
 
     private void connectIfNetworkAvailable() {
