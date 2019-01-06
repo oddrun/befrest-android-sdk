@@ -62,16 +62,11 @@ class NotificationHandler {
                 .setContentText(mBefrestNotifications.getBody())
                 .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon);
         Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
-        if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
-            for (Map.Entry<String, String> entry : mBefrestNotifications.getData().entrySet()) {
-                intent.putExtra(entry.getKey(), entry.getValue());
-            }
-        }
+
+        intent = addExtraDataToIntent(intent);
         notification.setContentIntent(getpendingIntent(intent));
         notification.setGroup(GROUP_KEY_WORK_EMAIL);
         notification.setAutoCancel(true);
-
-
         if (mBefrestNotifications.getIcon() != null) {
             Bitmap b = getBitmapFromURL(mBefrestNotifications.getIcon());
             if (b != null)
@@ -87,6 +82,15 @@ class NotificationHandler {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
         notificationManager.notify(getRandomNumber(), notifications);
         notificationManager.notify(0, buildSummeryNotification());
+    }
+
+    private Intent addExtraDataToIntent(Intent intent) {
+        if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
+            for (Map.Entry<String, String> entry : mBefrestNotifications.getData().entrySet()) {
+                intent.putExtra(entry.getKey(), entry.getValue());
+            }
+        }
+        return intent;
     }
 
     private int getResId(String resName) {
@@ -147,7 +151,8 @@ class NotificationHandler {
                 String activityToStart = mContext.getPackageName() + "." + befrestActionNotification.getJsonObject().getString("content");
                 try {
                     Class<?> c = Class.forName(activityToStart);
-                    return new Intent(mContext, c);
+                    Intent intent = new Intent(mContext, c);
+                    return addExtraDataToIntent(intent);
                 } catch (ClassNotFoundException ignored) {
                 }
                 break;
@@ -178,8 +183,8 @@ class NotificationHandler {
                 break;
 
         }
-
-        return mContext.getPackageManager().getLaunchIntentForPackage(mContext.getPackageName());
+        Intent intent = mContext.getPackageManager().getLaunchIntentForPackage(mContext.getPackageName());
+        return addExtraDataToIntent(intent);
     }
 
 

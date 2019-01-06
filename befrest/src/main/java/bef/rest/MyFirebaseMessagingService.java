@@ -14,13 +14,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     public static String TAG = BefLog.TAG_PREF + " MyFirebaseMessagingService";
     private BefrestNotifications builder;
-
+    Map<String, String> clientData = new HashMap<>();
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
@@ -31,6 +32,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             try {
                 handleDataMessage(remoteMessage.getData());
                 NotificationHandler handler = new NotificationHandler(getApplicationContext(), builder);
+                builder.setData(clientData);
                 handler.showNotificationAboveOreo();
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -74,6 +76,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     builder.setGroup(entry.getValue());
                     break;
                 default:
+                    clientData.put(entry.getKey(), entry.getValue());
                     break;
             }
         }
