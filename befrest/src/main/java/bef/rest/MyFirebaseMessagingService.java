@@ -33,7 +33,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 handleDataMessage(remoteMessage.getData());
                 NotificationHandler handler = new NotificationHandler(getApplicationContext(), builder);
                 builder.setData(clientData);
-                handler.showNotificationAboveOreo();
+                handler.showNotification();
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (PackageManager.NameNotFoundException e) {

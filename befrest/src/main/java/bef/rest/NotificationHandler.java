@@ -33,40 +33,42 @@ import java.util.Map;
 import java.util.Random;
 
 class NotificationHandler {
-    private String NOTIFICATION_CHANNEL_ID;
+    private String NOTIFICATION_CHANNEL_ID = "my_channel_id_01";
     private Context mContext;
     private BefrestNotifications mBefrestNotifications;
     private NotificationCompat.Builder notification;
-    private int icon = R.drawable.befrest;
+    private int icon;
     private NotificationManager notifManager;
     private String GROUP_KEY_WORK_EMAIL = "bef.rest.GROUP";
 
-    NotificationHandler(Context mContext, BefrestNotifications mBefrestNotifications) {
+    NotificationHandler(Context mContext, BefrestNotifications mBefrestNotifications) throws PackageManager.NameNotFoundException {
         this.mContext = mContext;
         this.mBefrestNotifications = mBefrestNotifications;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    void showNotificationAboveOreo() throws JSONException, PackageManager.NameNotFoundException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createChannels();
-        }
-
         ApplicationInfo applicationInfo = mContext.getPackageManager().getApplicationInfo(mContext.getPackageName(), 0);
         icon = applicationInfo.icon;
 
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    void showNotification() throws JSONException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createChannels();
+        }
         notification = new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID);
         notification.setStyle(getInboxStyle());
+
         notification.setContentTitle(mBefrestNotifications.getTitle())
                 .setContentText(mBefrestNotifications.getBody())
                 .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon);
-        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
 
+        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
         intent = addExtraDataToIntent(intent);
         notification.setContentIntent(getpendingIntent(intent));
+
         notification.setGroup(GROUP_KEY_WORK_EMAIL);
         notification.setAutoCancel(true);
+
         if (mBefrestNotifications.getIcon() != null) {
             Bitmap b = getBitmapFromURL(mBefrestNotifications.getIcon());
             if (b != null)
@@ -80,7 +82,8 @@ class NotificationHandler {
         Notification notifications = notification.build();
         notifications.flags |= Notification.FLAG_AUTO_CANCEL;
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
-        notificationManager.notify(getRandomNumber(), notifications);
+        notificationManager.notify(getRandomNumber(), notification.build());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
         notificationManager.notify(0, buildSummeryNotification());
     }
 
@@ -157,9 +160,9 @@ class NotificationHandler {
                 }
                 break;
 
-            case "openApp": {
+            case "openApp":
                 return mContext.getPackageManager().getLaunchIntentForPackage(mContext.getPackageName());
-            }
+
             case "dialer":
                 Uri u = Uri.parse("tel:" + befrestActionNotification.getJsonObject().getString("to"));
                 return new Intent(Intent.ACTION_DIAL, u);
@@ -225,11 +228,10 @@ class NotificationHandler {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void createChannels() {
-        NOTIFICATION_CHANNEL_ID = "my_channel_id_01";
         NotificationChannel notificationChannel = new NotificationChannel(
-                NOTIFICATION_CHANNEL_ID, "My app no sound", NotificationManager.IMPORTANCE_LOW
+                NOTIFICATION_CHANNEL_ID, "BefrestChannel", NotificationManager.IMPORTANCE_LOW
         );
-        notificationChannel.setDescription("no sound");
+        notificationChannel.setDescription("");
         notificationChannel.setSound(null, null);
         notificationChannel.enableLights(false);
         notificationChannel.setLightColor(Color.BLUE);
