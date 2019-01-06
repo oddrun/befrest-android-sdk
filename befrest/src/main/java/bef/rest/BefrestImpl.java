@@ -31,8 +31,12 @@ import android.os.SystemClock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import bef.rest.connection.HttpPostAsyncTask;
 
 import static bef.rest.BefrestPrefrences.PREF_AUTH;
 import static bef.rest.BefrestPrefrences.PREF_CH_ID;
@@ -235,7 +239,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             context.startService(intent);
         } catch (IllegalStateException e) {
 
-            sendCrash(e.getCause().getMessage(), context);
+            sendCrash(e.getCause().getMessage());
         }
     }
 
@@ -428,13 +432,13 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         }
     }
 
-    @Override
-    public void sendCrash(String stackTrace) {
 
-    }
-
-    public static void sendCrash(String stackTrace, Context mcontext) {
-
+    public static void sendCrash(String stackTrace) {
+        Map<String, String> postData = new HashMap<>();
+        postData.put("chid", stackTrace);
+        HttpPostAsyncTask task = null;
+        task = new HttpPostAsyncTask(stackTrace);
+        task.execute("https://api-v2.resana.io/bef/cr");
 
     }
 

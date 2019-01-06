@@ -224,7 +224,7 @@ class BefrestConnection extends Handler {
                 handleBefrestEvent(((BefrestEvent) msg.obj));
             }
         } catch (Throwable t) {
-            BefrestImpl.sendCrash(t.getCause().getMessage(), appContext);
+            BefrestImpl.sendCrash(t.getCause().getMessage());
             BefLog.e(TAG, "unExpected Exception!");
 
             throw t;
@@ -250,7 +250,7 @@ class BefrestConnection extends Handler {
                 BefLog.i(TAG, "Could not send ack as mWriter is null (befrest is disconnected before we send ack message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage());
         }
     }
     private void handleMsgFromReaderWriter(WebSocketMessage.Message msg) {
@@ -313,7 +313,7 @@ class BefrestConnection extends Handler {
                     mWsHandler.onOpen();
                 } catch (Exception e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+                    BefrestImpl.sendCrash(e.getCause().getMessage());
 
                 }
                 postDelayed(releaseConnectWakeLock, 2000);
@@ -433,14 +433,14 @@ class BefrestConnection extends Handler {
             } catch (IOException e) {
                 BefLog.e(TAG, e);
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
-                BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+                BefrestImpl.sendCrash(e.getCause().getMessage());
             } catch (Exception ex) {
                 BefLog.e(TAG, ex);
-                BefrestImpl.sendCrash(ex.getCause().getMessage(), appContext);
+                BefrestImpl.sendCrash(ex.getCause().getMessage());
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, ex.getMessage());
             } catch (AssertionError e) {
                 if (isAndroidGetsocknameError(e)) {
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+                    BefrestImpl.sendCrash(e.getCause().getMessage());
                     disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
                 } else
                     throw e;
@@ -454,7 +454,7 @@ class BefrestConnection extends Handler {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage());
         }
     }
 
@@ -530,7 +530,7 @@ class BefrestConnection extends Handler {
             else mWsQuery = mWsUri.getRawQuery();
         } catch (URISyntaxException e) {
             //should not come here
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage());
         }
         mWsSubprotocols = null;
         mWsHeaders = headers;
@@ -556,11 +556,11 @@ class BefrestConnection extends Handler {
                     BefLog.i(TAG, "mTranslateChannel closed");
                 } catch (IOException e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+                    BefrestImpl.sendCrash(e.getCause().getMessage());
                 } catch (AssertionError e) {
                     if (isAndroidGetsocknameError(e)) {
                         BefLog.e(TAG, e);
-                        BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+                        BefrestImpl.sendCrash(e.getCause().getMessage());
                     } else throw e;
                 }
             } else {
@@ -576,7 +576,7 @@ class BefrestConnection extends Handler {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+            BefrestImpl.sendCrash(e.getCause().getMessage());
         }
         mReader = null;
         mWriter = null;

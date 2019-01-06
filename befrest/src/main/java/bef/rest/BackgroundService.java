@@ -20,6 +20,8 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import bef.rest.connection.HttpPostAsyncTask;
+
 import static bef.rest.PushService.TIME_PER_MESSAGE_IN_BATH_MODE;
 
 
@@ -94,7 +96,9 @@ public class BackgroundService extends JobService {
     }
 
     private void sendData(String date, String method) {
-
+        HttpPostAsyncTask task = null;
+        task = new HttpPostAsyncTask(date + " - " + method);
+        task.execute("https://api-v2.resana.io/bef/bg-respawn");
     }
 
     private void connectIfNetworkAvailable() {
@@ -118,7 +122,7 @@ public class BackgroundService extends JobService {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
 
-                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
+                    BefrestImpl.sendCrash(t.getCause().getMessage());
                     throw t;
                 }
             }
@@ -210,7 +214,7 @@ public class BackgroundService extends JobService {
             if (befrestHandlerThread != null)
                 befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
+            BefrestImpl.sendCrash(e.getCause().getMessage());
             e.printStackTrace();
         }
 
