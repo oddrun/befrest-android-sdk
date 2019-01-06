@@ -219,13 +219,13 @@ public class BackgroundService extends JobService {
         return (requiredTime < BATCH_MODE_TIMEOUT ? requiredTime : BATCH_MODE_TIMEOUT);
     }
 
-    @SuppressLint("LongLogTag")
+
     @Override
     public void onDestroy() {
         Date currentTime = Calendar.getInstance().getTime();
-        Log.d(TAG, "onDestroy: ");
+        BefLog.i(TAG, "onDestroy: ");
         sendData(currentTime.toString(), "onDestroy");
-        Log.d(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
+        BefLog.i(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
         if (mConnection != null) {
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.STOP));
@@ -241,14 +241,13 @@ public class BackgroundService extends JobService {
 
         mConnection = null;
         befrestHandlerThread = null;
-        Log.d(TAG, "PushService==================onDestroy()_END==============================");
+        BefLog.i(TAG, "PushService==================onDestroy()_END==============================");
         super.onDestroy();
     }
 
-    @SuppressLint("LongLogTag")
     @Override
     public boolean onStopJob(JobParameters params) {
-        Log.w(TAG, "onStopJob: ");
+        BefLog.w(TAG, "onStopJob: ");
         Date currentTime = Calendar.getInstance().getTime();
         sendData(currentTime.toString(), "onStop");
         mainThreadHandler.removeCallbacks(finishJobSuccesfull);
