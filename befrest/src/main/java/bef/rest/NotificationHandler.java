@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -23,6 +25,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -36,7 +39,7 @@ class NotificationHandler {
     private NotificationCompat.Builder notification;
     private int icon = R.drawable.befrest;
     private NotificationManager notifManager;
-    private String GROUP_KEY_WORK_EMAIL = "com.android.example.WORK_EMAIL";
+    private String GROUP_KEY_WORK_EMAIL = "bef.rest.GROUP";
 
     NotificationHandler(Context mContext, BefrestNotifications mBefrestNotifications) {
         this.mContext = mContext;
@@ -44,14 +47,19 @@ class NotificationHandler {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    void showNotificationAboveOreo() throws JSONException {
+    void showNotificationAboveOreo() throws JSONException, PackageManager.NameNotFoundException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannels();
         }
 
+        ApplicationInfo applicationInfo = mContext.getPackageManager().getApplicationInfo(mContext.getPackageName(), 0);
+        icon = applicationInfo.icon;
+
         notification = new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID);
         notification.setStyle(getInboxStyle());
-        notification.setContentTitle(mBefrestNotifications.getTitle()).setContentText(mBefrestNotifications.getBody()).setSmallIcon(icon);
+        notification.setContentTitle(mBefrestNotifications.getTitle())
+                .setContentText(mBefrestNotifications.getBody())
+                .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon);
         Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
         if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
             for (Map.Entry<String, String> entry : mBefrestNotifications.getData().entrySet()) {
@@ -74,6 +82,16 @@ class NotificationHandler {
         notificationManager.notify(0, buildSummeryNotification());
     }
 
+    private int getResId(String resName) {
+        try {
+            Field idField = R.drawable.class.getDeclaredField(resName);
+            return idField.getInt(idField);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return icon;
+        }
+    }
+
     private int getRandomNumber() {
         return new Random().nextInt(61) + 20;
     }
@@ -82,7 +100,7 @@ class NotificationHandler {
         return new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(mBefrestNotifications.getTitle())
                 .setContentText(mBefrestNotifications.getBody())
-                .setSmallIcon(R.drawable.befrest)
+                .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon)
                 .setStyle(getInboxStyle())
                 .setGroup(GROUP_KEY_WORK_EMAIL)
                 .setGroupSummary(true)

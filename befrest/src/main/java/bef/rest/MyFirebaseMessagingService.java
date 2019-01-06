@@ -2,6 +2,7 @@ package bef.rest;
 
 
 import android.annotation.TargetApi;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -18,7 +19,7 @@ import java.util.Map;
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     public static String TAG = BefLog.TAG_PREF + " MyFirebaseMessagingService";
-    private BefrestNotifications.BefrestNotificationsBuilder builder;
+    private BefrestNotifications builder;
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
@@ -29,16 +30,18 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             Log.i(TAG, "onMessageReceived: " + remoteMessage.getData().toString());
             try {
                 handleDataMessage(remoteMessage.getData());
-                NotificationHandler handler = new NotificationHandler(getApplicationContext(), builder.build());
+                NotificationHandler handler = new NotificationHandler(getApplicationContext(), builder);
                 handler.showNotificationAboveOreo();
             } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
             }
         }
     }
 
     private void handleDataMessage(Map<String, String> data) throws JSONException {
-        builder = new BefrestNotifications.BefrestNotificationsBuilder();
+        builder = new BefrestNotifications();
         for (Map.Entry<String, String> entry : data.entrySet()) {
             switch (entry.getKey()) {
                 case "x_title":
@@ -64,6 +67,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     break;
                 case "x_clickPayload":
                     builder.setClick_payload(entry.getValue());
+                    break;
+                case "x_smallIcon":
+                    builder.setSmallIcon(entry.getValue());
                     break;
                 default:
                     break;
