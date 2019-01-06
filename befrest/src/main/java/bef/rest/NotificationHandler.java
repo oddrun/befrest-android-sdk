@@ -55,6 +55,7 @@ class NotificationHandler {
         ApplicationInfo applicationInfo = mContext.getPackageManager().getApplicationInfo(mContext.getPackageName(), 0);
         icon = applicationInfo.icon;
 
+
         notification = new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID);
         notification.setStyle(getInboxStyle());
         notification.setContentTitle(mBefrestNotifications.getTitle())
@@ -68,17 +69,23 @@ class NotificationHandler {
         }
         notification.setContentIntent(getpendingIntent(intent));
         notification.setGroup(GROUP_KEY_WORK_EMAIL);
+        notification.setAutoCancel(true);
+
+
         if (mBefrestNotifications.getIcon() != null) {
             Bitmap b = getBitmapFromURL(mBefrestNotifications.getIcon());
             if (b != null)
                 notification.setLargeIcon(b);
         }
+
         if (mBefrestNotifications.getSound() != null)
             setSound(mBefrestNotifications.getSound());
         if (mBefrestNotifications.getClickAction() != null && mBefrestNotifications.getClickAction().size() > 1)
             handleClickAction(mBefrestNotifications.getClickAction());
+        Notification notifications = notification.build();
+        notifications.flags |= Notification.FLAG_AUTO_CANCEL;
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
-        notificationManager.notify(getRandomNumber(), notification.build());
+        notificationManager.notify(getRandomNumber(), notifications);
         notificationManager.notify(0, buildSummeryNotification());
     }
 
@@ -96,15 +103,25 @@ class NotificationHandler {
         return new Random().nextInt(61) + 20;
     }
 
-    private Notification buildSummeryNotification() {
-        return new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID)
+    private Notification buildSummeryNotification() throws JSONException {
+        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
+        if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
+            for (Map.Entry<String, String> entry : mBefrestNotifications.getData().entrySet()) {
+                intent.putExtra(entry.getKey(), entry.getValue());
+            }
+        }
+        NotificationCompat.Builder b = new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(mBefrestNotifications.getTitle())
                 .setContentText(mBefrestNotifications.getBody())
                 .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon)
                 .setStyle(getInboxStyle())
+                .setContentIntent(getpendingIntent(intent))
                 .setGroup(GROUP_KEY_WORK_EMAIL)
-                .setGroupSummary(true)
-                .build();
+                .setGroupSummary(true);
+
+        Notification notifications = b.build();
+        notifications.flags |= Notification.FLAG_AUTO_CANCEL;
+        return notifications;
     }
 
     private NotificationCompat.InboxStyle getInboxStyle() {
@@ -165,12 +182,13 @@ class NotificationHandler {
         return mContext.getPackageManager().getLaunchIntentForPackage(mContext.getPackageName());
     }
 
+
     private PendingIntent getpendingIntent(Intent intent) {
         return PendingIntent.getActivity(
                 mContext,
                 0,
                 intent,
-                PendingIntent.FLAG_CANCEL_CURRENT
+                PendingIntent.FLAG_UPDATE_CURRENT
         );
     }
 

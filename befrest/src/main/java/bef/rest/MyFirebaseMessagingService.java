@@ -70,6 +70,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     break;
                 case "x_smallIcon":
                     builder.setSmallIcon(entry.getValue());
+                case "x_group":
+                    builder.setGroup(entry.getValue());
                     break;
                 default:
                     break;

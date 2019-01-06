@@ -19,12 +19,21 @@ class BefrestNotifications {
     private ArrayList<BefrestActionNotification> clickAction;
     private Map<String, String> data;
     private String smallIcon;
+    private String group;
 
-    public String getSmallIcon() {
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    String getSmallIcon() {
         return smallIcon;
     }
 
-    public void setSmallIcon(String smallIcon) {
+    void setSmallIcon(String smallIcon) {
         this.smallIcon = smallIcon;
     }
 
@@ -60,11 +69,11 @@ class BefrestNotifications {
         this.icon = icon;
     }
 
-    public String getSound() {
+    String getSound() {
         return sound;
     }
 
-    public void setSound(String sound) {
+    void setSound(String sound) {
         this.sound = sound;
     }
 
@@ -108,27 +117,27 @@ class BefrestNotifications {
         this.title_log_args = title_log_args;
     }
 
-    public String getClick() {
+    String getClick() {
         return click;
     }
 
-    public void setClick(String click) {
+    void setClick(String click) {
         this.click = click;
     }
 
-    public String getClick_payload() {
+    String getClick_payload() {
         return click_payload;
     }
 
-    public void setClick_payload(String click_payload) {
+    void setClick_payload(String click_payload) {
         this.click_payload = click_payload;
     }
 
-    public ArrayList<BefrestActionNotification> getClickAction() {
+    ArrayList<BefrestActionNotification> getClickAction() {
         return clickAction;
     }
 
-    public void setClickAction(ArrayList<BefrestActionNotification> clickAction) {
+    void setClickAction(ArrayList<BefrestActionNotification> clickAction) {
         this.clickAction = clickAction;
     }
 
