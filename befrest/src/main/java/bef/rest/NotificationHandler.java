@@ -65,8 +65,9 @@ class NotificationHandler {
         Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
         intent = addExtraDataToIntent(intent);
         notification.setContentIntent(getpendingIntent(intent));
-
-        notification.setGroup(GROUP_KEY_WORK_EMAIL);
+        if (mBefrestNotifications.getGroup() != null) {
+            notification.setGroup(mBefrestNotifications.getGroup() != null ? mBefrestNotifications.getGroup() : GROUP_KEY_WORK_EMAIL);
+        }
         notification.setAutoCancel(true);
 
         if (mBefrestNotifications.getIcon() != null) {
@@ -84,7 +85,7 @@ class NotificationHandler {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
         notificationManager.notify(getRandomNumber(), notification.build());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-        notificationManager.notify(0, buildSummeryNotification());
+            notificationManager.notify(0, buildSummeryNotification());
     }
 
     private Intent addExtraDataToIntent(Intent intent) {
@@ -122,10 +123,10 @@ class NotificationHandler {
                 .setContentText(mBefrestNotifications.getBody())
                 .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon)
                 .setStyle(getInboxStyle())
-                .setContentIntent(getpendingIntent(intent))
-                .setGroup(GROUP_KEY_WORK_EMAIL)
-                .setGroupSummary(true);
-
+                .setContentIntent(getpendingIntent(intent));
+        if (mBefrestNotifications.getGroup() != null) {
+            b.setGroup(mBefrestNotifications.getGroup() != null ? mBefrestNotifications.getGroup() : GROUP_KEY_WORK_EMAIL).setGroupSummary(true);
+        }
         Notification notifications = b.build();
         notifications.flags |= Notification.FLAG_AUTO_CANCEL;
         return notifications;

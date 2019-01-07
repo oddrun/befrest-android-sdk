@@ -39,14 +39,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import bef.rest.connection.ApiClient;
-import bef.rest.connection.ApiService;
-import bef.rest.connection.model.BaseResponse;
-import bef.rest.connection.model.CrashReport;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 import static bef.rest.BefrestPrefrences.PREF_AUTH;
 import static bef.rest.BefrestPrefrences.PREF_CH_ID;
 import static bef.rest.BefrestPrefrences.PREF_CONNECT_ANOMALY_DATA_RECORDING_TIME;
@@ -494,35 +486,11 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
 
     @Override
     public void sendCrash(String stackTrace) {
-        CrashReport crashReport = new CrashReport(stackTrace);
-        ApiService apiService = ApiClient.getClient(context).create(ApiService.class);
-        Call<BaseResponse> call = apiService.sendCrash(crashReport);
-        call.enqueue(new Callback<BaseResponse>() {
-            @Override
-            public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
-                BefLog.d(TAG, response.body().toString());
-            }
 
-            @Override
-            public void onFailure(Call<BaseResponse> call, Throwable t) {
-            }
-        });
     }
 
     public static void sendCrash(String stackTrace, Context mcontext) {
-        CrashReport crashReport = new CrashReport(stackTrace);
-        ApiService apiService = ApiClient.getClient(mcontext).create(ApiService.class);
-        Call<BaseResponse> call = apiService.sendCrash(crashReport);
-        call.enqueue(new Callback<BaseResponse>() {
-            @Override
-            public void onResponse(Call<BaseResponse> call, Response<BaseResponse> response) {
-                BefLog.d(TAG, response.body().toString());
-            }
 
-            @Override
-            public void onFailure(Call<BaseResponse> call, Throwable t) {
-            }
-        });
 
     }
 
