@@ -42,6 +42,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Parcelable;
+import android.util.Log;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -80,7 +81,7 @@ public class PushService extends Service {
     private static int batchSize;
     private boolean isBachReceiveMode;
 
-    static final int START_SERVICE_AFTER_ILLEGAL_STOP_DELAY = 15 * 1000;
+    static final int START_SERVICE_AFTER_ILLEGAL_STOP_DELAY = 150 * 1000;
 
     private boolean authProblemSinceLastStart = false;
 
@@ -216,7 +217,7 @@ public class PushService extends Service {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-                    befrestProxy.sendCrash(t.getMessage());
+//                    BefrestImpl.sendCrash(t.getMessage());
                     throw t;
                 }
             }
@@ -418,7 +419,8 @@ public class PushService extends Service {
             if (!(retryInProgress))
                 connectIfNetworkAvailable();
         } else {
-            //stopSelf();
+            Log.i(TAG, "handleServiceStopped: else ------");
+            stopSelf();
         }
     }
 

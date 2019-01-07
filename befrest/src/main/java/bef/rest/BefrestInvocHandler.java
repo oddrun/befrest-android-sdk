@@ -39,7 +39,7 @@ class BefrestInvocHandler implements InvocationHandler {
         } catch (Throwable t) {
             if (isBefrestGeneratedException(t))
                 throw getSpecificBefrestException(t);
-            obj.sendCrash(t.getCause().getMessage());
+//            obj.sendCrash(t.getCause().getMessage());
 
             throw t;
         }

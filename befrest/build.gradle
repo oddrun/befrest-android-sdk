@@ -3,7 +3,7 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'digital.wup.android-maven-publish'
 
 def packageName = 'bef.rest'
-def libraryVersion = '1.0.0'
+def libraryVersion = '1.0.1'
 
 android {
     compileSdkVersion 28

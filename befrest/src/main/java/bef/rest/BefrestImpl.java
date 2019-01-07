@@ -64,6 +64,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     static final int START_ALARM_CODE = 676428;
     static final int KEEP_PINGING_ALARM_CODE = 676429;
     private JobScheduler jobScheduler;
+    private boolean connectionDataChangedSinceLastStart;
 
     BefrestImpl(Context context) {
         this.context = context.getApplicationContext();
@@ -131,6 +132,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
      * @param chId chId
      */
     public Befrest init(long uId, String auth, String chId) {
+
         if (chId == null || !(chId.length() > 0))
             throw new BefrestException("invalid chId!");
         if (uId != this.uId || (auth != null && !auth.equals(this.auth)) || !chId.equals(this.chId)) {
@@ -139,6 +141,9 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             this.chId = chId;
             clearTempData();
             saveToPrefs(context, uId, auth, chId);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            start();
         }
         return this;
     }
@@ -218,9 +223,10 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             throw new BefrestException("uId and chId are not properly defined!");
         isBefrestStarted = true;
         saveString(context, PREF_LAST_STATE, null);
-        // if (connectionDataChangedSinceLastStart)
+        if (connectionDataChangedSinceLastStart)
         context.stopService(new Intent(context, pushService));
         BefrestImpl.startService(pushService, context, PushService.CONNECT);
+        connectionDataChangedSinceLastStart = false;
 
         Util.enableConnectivityChangeListener(context);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -239,7 +245,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             context.startService(intent);
         } catch (IllegalStateException e) {
 
-            sendCrash(e.getCause().getMessage());
+//            sendCrash(e.getCause().getMessage());
         }
     }
 
@@ -423,6 +429,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
                     .setPersisted(true)
                     .build());
         } else {
+
             AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             Intent intent = new Intent(context, pushService).putExtra(PushService.SERVICE_STOPPED, true);
             PendingIntent pi = PendingIntent.getService(context, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -446,6 +453,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         subscribeUrl = null;
         subscribeHeaders = null;
         authHeader = null;
+        connectionDataChangedSinceLastStart = false;
+
     }
 
     public String getSubscribeUri() {
