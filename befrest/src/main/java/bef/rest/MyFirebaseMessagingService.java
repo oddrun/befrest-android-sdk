@@ -1,9 +1,7 @@
 package bef.rest;
 
 
-import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.util.Log;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -22,7 +20,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public static String TAG = BefLog.TAG_PREF + " MyFirebaseMessagingService";
     private BefrestNotifications builder;
     Map<String, String> clientData = new HashMap<>();
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
@@ -41,7 +39,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
     }
-
     private void handleDataMessage(Map<String, String> data) throws JSONException {
         builder = new BefrestNotifications();
         for (Map.Entry<String, String> entry : data.entrySet()) {
@@ -81,7 +78,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
     }
-
     private void excludeClickAction(String value) throws JSONException {
         JSONObject jsonObject = new JSONObject(value);
         JSONArray data = jsonObject.getJSONArray("data");
@@ -96,6 +92,4 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
         builder.setClickAction(actions);
     }
-
-
 }
