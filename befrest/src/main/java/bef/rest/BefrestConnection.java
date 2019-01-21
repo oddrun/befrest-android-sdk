@@ -46,6 +46,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Objects;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -209,10 +210,7 @@ class BefrestConnection extends Handler {
                     BefLog.i(TAG, "FCM Token Does Not Received ");
                     return;
                 }
-                 /*
-                   pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
-                  */
-                BefLog.i(TAG, task.getResult().getToken());
+                BefLog.i(TAG, "FCM Token Received : " + Objects.requireNonNull(task.getResult()).getToken());
                 sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
             }
         });
@@ -296,15 +294,16 @@ class BefrestConnection extends Handler {
     private void sendFCMToken(String prevToken, String newToken) {
         if (prevToken == null)
             prevToken = "";
-        if (prevToken.equals(newToken))
+        if (prevToken.equals(newToken)) {
+            BefLog.i(TAG, "prevToken is equal with new Token");
             return;
+        }
         try {
             if (mWriter != null) {
                 mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken, newToken)));
                 BefrestPrefrences.saveString(appContext, PREF_FCM_TOKEN, newToken);
-                BefLog.i(TAG, " FCM token : " + prevToken);
             } else {
-                BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send ack message)");
+                BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send fcm message)");
             }
         } catch (Exception e) {
             BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
@@ -312,8 +311,7 @@ class BefrestConnection extends Handler {
     }
 
     /**
-     * Build String For Write OnWebSocket
-     *
+     * Build String to Write OnWebSocket
      * @return "prevToken"~"newToken"
      */
     private String FCMTokenBuilder(String prevToken, String newToken) {
