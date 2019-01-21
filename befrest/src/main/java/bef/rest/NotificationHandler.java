@@ -50,7 +50,6 @@ class NotificationHandler {
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     void showNotification() throws JSONException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannels();
@@ -75,7 +74,7 @@ class NotificationHandler {
             if (b != null)
                 notification.setLargeIcon(b);
         }
-
+        notification.setColor(Color.argb(1, 66, 244, 191));
         if (mBefrestNotifications.getSound() != null)
             setSound(mBefrestNotifications.getSound());
         if (mBefrestNotifications.getClickAction() != null && mBefrestNotifications.getClickAction().size() > 1)
@@ -111,6 +110,7 @@ class NotificationHandler {
         return new Random().nextInt(61) + 20;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     private Notification buildSummeryNotification() throws JSONException {
         Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
         if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
@@ -148,6 +148,7 @@ class NotificationHandler {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     private Intent getRelatedPendingIntent(BefrestActionNotification befrestActionNotification) throws JSONException {
 
         switch (befrestActionNotification.getActionType()) {
