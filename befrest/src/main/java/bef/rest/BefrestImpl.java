@@ -64,7 +64,7 @@ import static bef.rest.BefrestPrefrences.saveToPrefs;
 final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate {
     private static String TAG = BefLog.TAG_PREF + "BefrestImpl";
 
-    static final int START_ALARM_CODE = 676428;
+    private static final int START_ALARM_CODE = 676428;
     static final int KEEP_PINGING_ALARM_CODE = 676429;
     private JobScheduler jobScheduler;
 
@@ -336,6 +336,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     private void unsubscribeFCMTopic(String topicName) {
         if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
             FirebaseMessaging.getInstance().unsubscribeFromTopic(topicName);
+
     }
 
     private void unsubscribeFCMTopics(List<String> removeTopic) {
@@ -345,6 +346,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             }
         }
     }
+
     /**
      * remove a topic from current topics that user has.
      *
