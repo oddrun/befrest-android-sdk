@@ -74,7 +74,7 @@ class NotificationHandler {
             if (b != null)
                 notification.setLargeIcon(b);
         }
-        notification.setColor(Color.argb(1, 66, 244, 191));
+
         if (mBefrestNotifications.getSound() != null)
             setSound(mBefrestNotifications.getSound());
         if (mBefrestNotifications.getClickAction() != null && mBefrestNotifications.getClickAction().size() > 1)
