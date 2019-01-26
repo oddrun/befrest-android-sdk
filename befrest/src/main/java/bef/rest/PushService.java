@@ -216,7 +216,7 @@ public class PushService extends Service {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-                    befrestProxy.sendCrash(t.getMessage());
+//                    befrestProxy.sendCrash(t.getMessage());
                     throw t;
                 }
             }
@@ -418,7 +418,7 @@ public class PushService extends Service {
             if (!(retryInProgress))
                 connectIfNetworkAvailable();
         } else {
-            //stopSelf();
+            stopSelf();
         }
     }
 

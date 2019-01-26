@@ -254,7 +254,7 @@ class BefrestConnection extends Handler {
                 handleBefrestEvent(((BefrestEvent) msg.obj));
             }
         } catch (Throwable t) {
-            BefrestImpl.sendCrash(t.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(t.getCause().getMessage(), appContext);
             BefLog.e(TAG, "unExpected Exception!");
 
             throw t;
@@ -280,7 +280,7 @@ class BefrestConnection extends Handler {
                 BefLog.i(TAG, "Could not send ack as mWriter is null (befrest is disconnected before we send ack message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
 
@@ -295,18 +295,19 @@ class BefrestConnection extends Handler {
         if (prevToken == null)
             prevToken = "";
         if (prevToken.equals(newToken)) {
-            BefLog.i(TAG, "prevToken is equal with new Token");
+            BefLog.i(TAG, "prevToken is equal with new Token + [" + prevToken + "]" + " , [" + newToken + "]");
             return;
         }
         try {
             if (mWriter != null) {
+                BefLog.i(TAG, "FCM Token write on websocket successfully");
                 mWriter.forward(new WebSocketMessage.TextMessage(FCMTokenBuilder(prevToken, newToken)));
                 BefrestPrefrences.saveString(appContext, PREF_FCM_TOKEN, newToken);
             } else {
                 BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send fcm message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
 
@@ -378,7 +379,7 @@ class BefrestConnection extends Handler {
                     mWsHandler.onOpen();
                 } catch (Exception e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
 
                 }
                 postDelayed(releaseConnectWakeLock, 2000);
@@ -512,14 +513,14 @@ class BefrestConnection extends Handler {
             } catch (IOException e) {
                 BefLog.e(TAG, e);
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
-                BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//                BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
             } catch (Exception ex) {
                 BefLog.e(TAG, ex);
-                BefrestImpl.sendCrash(ex.getCause().getMessage(), appContext);
+//                BefrestImpl.sendCrash(ex.getCause().getMessage(), appContext);
                 disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, ex.getMessage());
             } catch (AssertionError e) {
                 if (isAndroidGetsocknameError(e)) {
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
                     disconnectAndNotify(WebSocketConnectionHandler.CLOSE_CANNOT_CONNECT, e.getMessage());
                 } else
                     throw e;
@@ -533,7 +534,7 @@ class BefrestConnection extends Handler {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
     }
 
@@ -609,7 +610,7 @@ class BefrestConnection extends Handler {
             else mWsQuery = mWsUri.getRawQuery();
         } catch (URISyntaxException e) {
             //should not come here
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
         mWsSubprotocols = null;
         mWsHeaders = headers;
@@ -635,11 +636,11 @@ class BefrestConnection extends Handler {
                     BefLog.i(TAG, "mTranslateChannel closed");
                 } catch (IOException e) {
                     BefLog.e(TAG, e);
-                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//                    BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
                 } catch (AssertionError e) {
                     if (isAndroidGetsocknameError(e)) {
                         BefLog.e(TAG, e);
-                        BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//                        BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
                     } else throw e;
                 }
             } else {
@@ -655,7 +656,7 @@ class BefrestConnection extends Handler {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
         }
         mReader = null;
         mWriter = null;

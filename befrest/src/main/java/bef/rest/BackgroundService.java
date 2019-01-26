@@ -118,7 +118,7 @@ public class BackgroundService extends JobService {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
 
-                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
+//                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
                     throw t;
                 }
             }
@@ -210,7 +210,7 @@ public class BackgroundService extends JobService {
             if (befrestHandlerThread != null)
                 befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
             e.printStackTrace();
         }
 
