@@ -19,11 +19,17 @@ package bef.rest;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Base64;
+import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
@@ -101,6 +107,32 @@ interface BefrestInternal {
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP);
             BefLog.v(TAG, "Befrest Connectivity change listener disabled");
+        }
+
+        static boolean customReceiverPass(Context context) throws PackageManager.NameNotFoundException {
+            PackageManager pm = context.getPackageManager();
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            Intent intent = new Intent();
+            intent.setPackage(pInfo.packageName);
+            //intent.setAction(Constants.ACTION_RECEIVE_MESSAGE);
+            for (ResolveInfo resolveInfo : pm.queryBroadcastReceivers(intent,
+                    PackageManager.GET_RESOLVED_FILTER |
+                            PackageManager.GET_DISABLED_COMPONENTS)) {
+                ActivityInfo activityInfo = resolveInfo.activityInfo;
+                if (!activityInfo.packageName.equals(pInfo.packageName))
+                    continue;
+                IntentFilter filter = resolveInfo.filter;
+                if (filter != null && filter.hasAction(notifreceicer.x)) {
+                    boolean enabled = pm.getComponentEnabledSetting(new ComponentName(
+                            activityInfo.packageName, activityInfo.name
+                    )) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+                    Log.i(TAG, "Handle receiver: " + activityInfo.name +
+                            "; enabled: " + enabled);
+                    return enabled;
+                }
+            }
+            // Not found
+            return true;
         }
 
         static void enableConnectivityChangeListener(Context context) {

@@ -33,6 +33,9 @@
       <console name="Connection 1" type="STANDARD" schema="main" session="Main" />
     </connection>
   </component>
+  <component name="DBNavigator.Project.DatabaseFileManager">
+    <open-files />
+  </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="588f22a9-3f2d-4901-aa23-3859abb0340f" />
     <connection id="819ff485-9c4a-40f3-adab-a14fb1acd361" />
@@ -161,7 +164,7 @@
           <description value="" />
           <database-type value="SQLITE" />
           <config-type value="BASIC" />
-          <database-version value="3.2" />
+          <database-version value="3.21" />
           <driver-source value="BUILTIN" />
           <driver-library value="" />
           <driver value="" />

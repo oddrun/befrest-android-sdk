@@ -1,9 +1,10 @@
 package bef.rest;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.HashMap;
 
-class BefrestNotifications {
+public class BefrestNotifications implements Serializable {
     private int id;
     private String title;
     private String body;
@@ -17,7 +18,7 @@ class BefrestNotifications {
     private String click;
     private String click_payload;
     private ArrayList<BefrestActionNotification> clickAction;
-    private Map<String, String> data;
+    private HashMap<String, String> data;
     private String smallIcon;
     private String group;
 
@@ -141,11 +142,11 @@ class BefrestNotifications {
         this.clickAction = clickAction;
     }
 
-    public Map<String, String> getData() {
+    public HashMap<String, String> getData() {
         return data;
     }
 
-    public void setData(Map<String, String> data) {
+    public void setData(HashMap<String, String> data) {
         this.data = data;
     }
 }

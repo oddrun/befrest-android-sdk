@@ -1,5 +1,6 @@
 package bef.rest;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -15,6 +16,7 @@ import android.graphics.Color;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
@@ -41,6 +43,15 @@ class NotificationHandler {
     private NotificationManager notifManager;
     private String GROUP_KEY_WORK_EMAIL = "bef.rest.GROUP";
 
+
+    public NotificationHandler(Context mContext) {
+        this.mContext = mContext;
+    }
+
+    public void setmBefrestNotifications(BefrestNotifications mBefrestNotifications) {
+        this.mBefrestNotifications = mBefrestNotifications;
+    }
+
     NotificationHandler(Context mContext, BefrestNotifications mBefrestNotifications) throws PackageManager.NameNotFoundException {
         this.mContext = mContext;
         this.mBefrestNotifications = mBefrestNotifications;
@@ -54,37 +65,13 @@ class NotificationHandler {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannels();
         }
+
         notification = new NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID);
         notification.setStyle(getInboxStyle());
 
-        notification.setContentTitle(mBefrestNotifications.getTitle())
-                .setContentText(mBefrestNotifications.getBody())
-                .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon);
+        new HttpRequestTask().execute(mBefrestNotifications.getIcon());
 
-        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
-        intent = addExtraDataToIntent(intent);
-        notification.setContentIntent(getpendingIntent(intent));
-        if (mBefrestNotifications.getGroup() != null) {
-            notification.setGroup(mBefrestNotifications.getGroup() != null ? mBefrestNotifications.getGroup() : GROUP_KEY_WORK_EMAIL);
-        }
-        notification.setAutoCancel(true);
 
-        if (mBefrestNotifications.getIcon() != null) {
-            Bitmap b = getBitmapFromURL(mBefrestNotifications.getIcon());
-            if (b != null)
-                notification.setLargeIcon(b);
-        }
-
-        if (mBefrestNotifications.getSound() != null)
-            setSound(mBefrestNotifications.getSound());
-        if (mBefrestNotifications.getClickAction() != null && mBefrestNotifications.getClickAction().size() > 1)
-            handleClickAction(mBefrestNotifications.getClickAction());
-        Notification notifications = notification.build();
-        notifications.flags |= Notification.FLAG_AUTO_CANCEL;
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
-        notificationManager.notify(getRandomNumber(), notification.build());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-            notificationManager.notify(0, buildSummeryNotification());
     }
 
     private Intent addExtraDataToIntent(Intent intent) {
@@ -112,7 +99,7 @@ class NotificationHandler {
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     private Notification buildSummeryNotification() throws JSONException {
-        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()) : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
+        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()).toString() : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
         if (mBefrestNotifications.getData() != null && mBefrestNotifications.getData().size() > 0) {
             for (Map.Entry<String, String> entry : mBefrestNotifications.getData().entrySet()) {
                 intent.putExtra(entry.getKey(), entry.getValue());
@@ -151,9 +138,11 @@ class NotificationHandler {
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     private Intent getRelatedPendingIntent(BefrestActionNotification befrestActionNotification) throws JSONException {
 
+        JSONObject jsonObject = new JSONObject(befrestActionNotification.getActionPayload());
+
         switch (befrestActionNotification.getActionType()) {
             case "openActivity":
-                String activityToStart = mContext.getPackageName() + "." + befrestActionNotification.getJsonObject().getString("content");
+                String activityToStart = mContext.getPackageName() + "." + jsonObject.getString("content");
                 try {
                     Class<?> c = Class.forName(activityToStart);
                     Intent intent = new Intent(mContext, c);
@@ -166,20 +155,20 @@ class NotificationHandler {
                 return mContext.getPackageManager().getLaunchIntentForPackage(mContext.getPackageName());
 
             case "dialer":
-                Uri u = Uri.parse("tel:" + befrestActionNotification.getJsonObject().getString("to"));
+                Uri u = Uri.parse("tel:" + jsonObject.getString("to"));
                 return new Intent(Intent.ACTION_DIAL, u);
 
             case "sms":
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.putExtra("sms_body", befrestActionNotification.getJsonObject().getString("content"));
-                intent.putExtra("address", befrestActionNotification.getJsonObject().getString("to"));
+                intent.putExtra("sms_body", jsonObject.getString("content"));
+                intent.putExtra("address", jsonObject.getString("to"));
                 intent.setType("vnd.android-dir/mms-sms");
                 return intent;
             case "email":
-                String mailto = "mailto:" + befrestActionNotification.getJsonObject().getString("to") +
+                String mailto = "mailto:" + jsonObject.getString("to") +
                         "?cc=" + "" +
-                        "&subject=" + Uri.encode(befrestActionNotification.getJsonObject().getString("title")) +
-                        "&body=" + Uri.encode(befrestActionNotification.getJsonObject().getString("content"));
+                        "&subject=" + Uri.encode(jsonObject.getString("title")) +
+                        "&body=" + Uri.encode(jsonObject.getString("content"));
                 Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
                 emailIntent.setData(Uri.parse(mailto));
                 return emailIntent;
@@ -226,6 +215,60 @@ class NotificationHandler {
             e.printStackTrace();
             return null;
         }
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private class HttpRequestTask extends AsyncTask<String, Void, Bitmap> {
+
+        @Override
+        protected Bitmap doInBackground(String... strings) {
+            try {
+                URL url = new URL(strings[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.connect();
+                InputStream input = connection.getInputStream();
+                return BitmapFactory.decodeStream(input);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            super.onPostExecute(bitmap);
+            try {
+                doSomeThing();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void doSomeThing() throws JSONException {
+        notification.setContentTitle(mBefrestNotifications.getTitle())
+                .setContentText(mBefrestNotifications.getBody())
+                .setSmallIcon(mBefrestNotifications.getSmallIcon() != null ? getResId(mBefrestNotifications.getSmallIcon()) : icon);
+
+        Intent intent = getRelatedPendingIntent(new BefrestActionNotification("", mBefrestNotifications.getClick_payload() != null ? new JSONObject(mBefrestNotifications.getClick_payload()).toString() : null, mBefrestNotifications.getClick() != null ? mBefrestNotifications.getClick() : ""));
+        intent = addExtraDataToIntent(intent);
+        notification.setContentIntent(getpendingIntent(intent));
+        if (mBefrestNotifications.getGroup() != null) {
+            notification.setGroup(mBefrestNotifications.getGroup() != null ? mBefrestNotifications.getGroup() : GROUP_KEY_WORK_EMAIL);
+        }
+        notification.setAutoCancel(true);
+
+        if (mBefrestNotifications.getSound() != null)
+            setSound(mBefrestNotifications.getSound());
+        if (mBefrestNotifications.getClickAction() != null && mBefrestNotifications.getClickAction().size() > 1)
+            handleClickAction(mBefrestNotifications.getClickAction());
+        Notification notifications = notification.build();
+        notifications.flags |= Notification.FLAG_AUTO_CANCEL;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
+        notificationManager.notify(getRandomNumber(), notification.build());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+            notificationManager.notify(0, buildSummeryNotification());
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)

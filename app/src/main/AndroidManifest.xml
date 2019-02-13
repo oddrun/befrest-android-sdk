@@ -44,7 +44,7 @@
             android:enabled="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="bef.rest.broadcasts.ACTION_BEFREST_PUSH" />
+                <action android:name="bef.rest.broadcasts.ACTION_BEFREST_P" />
             </intent-filter>
         </receiver>
 
