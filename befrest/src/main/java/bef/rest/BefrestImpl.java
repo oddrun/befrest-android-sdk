@@ -125,7 +125,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
 
     private String subscribeUrl;
     private List<NameValuePair> subscribeHeaders;
-    private NameValuePair authHeader, fcmHeader;
+    private NameValuePair authHeader, fcmHeader, platformHeader;
 
     /**
      * Initialize push receive service. You can also use setter messages for initializing.
@@ -266,7 +266,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
                 }
             }
         }).start();
-        BefrestPrefrences.removePrefs(context);
+        // BefrestPrefrences.removePrefs(context);
     }
 
     public Befrest addTopic(String topicName) {
@@ -522,6 +522,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         if (subscribeHeaders == null) {
             subscribeHeaders = new ArrayList<>();
             subscribeHeaders.add(getAuthHeader());
+            subscribeHeaders.add(getPlatformHeader());
             subscribeHeaders.add(hasFCMToken());
             if (topics != null && topics.length() > 0)
                 subscribeHeaders.add(new NameValuePair("X-BF-TOPICS", topics));
@@ -535,6 +536,14 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         }
         BefLog.v(TAG, "AuthToken: " + auth);
         return authHeader;
+    }
+
+    public NameValuePair getPlatformHeader() {
+        if (platformHeader == null) {
+            platformHeader = new NameValuePair("X-BF-PLATFORM", "android");
+        }
+
+        return platformHeader;
     }
 
     public int getSendOnAuthorizeBroadcastDelay() {
