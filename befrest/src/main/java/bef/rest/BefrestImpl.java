@@ -28,7 +28,6 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -72,12 +71,13 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         this.context = context.getApplicationContext();
         SharedPreferences prefs = getPrefs(context);
         uId = prefs.getLong(PREF_U_ID, -1);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
         BefrestAppLifeCycle befrestAppLifeCycle = new BefrestAppLifeCycle(this);
         context.registerComponentCallbacks(befrestAppLifeCycle);
         ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
+
         chId = prefs.getString(PREF_CH_ID, null);
         prefs.getString(PREF_LAST_STATE, null);
         auth = prefs.getString(PREF_AUTH, null);
@@ -222,17 +222,17 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             throw new BefrestException("uId and chId are not properly defined!");
         isBefrestStarted = true;
         saveString(context, PREF_LAST_STATE, null);
-        // if (connectionDataChangedSinceLastStart)
+        if (connectionDataChangedSinceLastStart)
         context.stopService(new Intent(context, pushService));
-        BefrestImpl.startService(pushService, context, PushService.CONNECT);
 
+        BefrestImpl.startService(pushService, context, PushService.CONNECT);
         connectionDataChangedSinceLastStart = false;
         Util.enableConnectivityChangeListener(context);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
             if (jobScheduler.getAllPendingJobs().size() > 0) {
-                jobScheduler.cancelAll();
                 BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
+                jobScheduler.cancelAll();
             }
         }
     }
@@ -242,8 +242,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             Intent intent = new Intent(context, pushService);
             intent.putExtra(flag, true);
             context.startService(intent);
-        } catch (IllegalStateException e) {
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -417,7 +417,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     }
 
     /**
-     * Register a new push receiver. Any registered receiver <i><b>must be</b></i> unregistered
+     * Register a new push receiver. Any registered receiver <i><beforeShowCallBack>must be</beforeShowCallBack></i> unregistered
      * by passing the same receiver object to {@link #unregisterPushReceiver}. Actually the method
      * registers a BroadcastReceiver considering security using permissions.
      *
@@ -500,6 +500,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         subscribeUrl = null;
         subscribeHeaders = null;
         authHeader = null;
+        fcmHeader = null;
         connectionDataChangedSinceLastStart = true;
     }
 
@@ -590,12 +591,11 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     @Override
     public void onAppForeGrounded() {
         start();
-        Log.i(TAG, "onAppForeGrounded: ");
     }
 
     @Override
     public void onAppBackground() {
-        Log.i(TAG, "onAppBackground: ");
+
     }
 
     class BefrestException extends RuntimeException {

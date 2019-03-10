@@ -22,15 +22,15 @@ public class BefrestActionNotification implements Serializable {
     }
 
 
-    public String getActionTitle() {
+    String getActionTitle() {
         return actionTitle;
     }
 
-    public String getActionPayload() {
+    String getActionPayload() {
         return actionPayload;
     }
 
-    public String getActionType() {
+    String getActionType() {
         return actionType;
     }
 }

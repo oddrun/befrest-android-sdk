@@ -8,10 +8,10 @@ import android.os.Bundle;
 
 public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbacks, ComponentCallbacks2 {
 
-    BefrestAppDelegate befrestLifeCycle;
+    private BefrestAppDelegate befrestLifeCycle;
     private boolean isAppForeground = false;
 
-    public BefrestAppLifeCycle(BefrestAppDelegate befrestLifeCycle) {
+    BefrestAppLifeCycle(BefrestAppDelegate befrestLifeCycle) {
         this.befrestLifeCycle = befrestLifeCycle;
     }
 

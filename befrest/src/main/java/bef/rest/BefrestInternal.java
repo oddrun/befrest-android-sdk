@@ -17,6 +17,7 @@
 package bef.rest;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -65,6 +66,7 @@ interface BefrestInternal {
         /**
          * Is device connected to Internet?
          */
+        @SuppressLint("MissingPermission")
         static boolean isConnectedToInternet(Context context) {
             try {
                 ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -122,7 +124,7 @@ interface BefrestInternal {
                 if (!activityInfo.packageName.equals(pInfo.packageName))
                     continue;
                 IntentFilter filter = resolveInfo.filter;
-                if (filter != null && filter.hasAction(notifreceicer.x)) {
+                if (filter != null && filter.hasAction(NotificationReceiver.befrestPush)) {
                     boolean enabled = pm.getComponentEnabledSetting(new ComponentName(
                             activityInfo.packageName, activityInfo.name
                     )) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;

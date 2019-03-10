@@ -13,7 +13,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,9 +34,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 if (!customReceiverPass(getApplicationContext())) {
                     handleDataMessage(remoteMessage.getData());
                     builder.setData(clientData);
-                    Intent intent = new Intent(notifreceicer.x);
+                    Intent intent = new Intent(NotificationReceiver.befrestPush);
                     Bundle args = new Bundle();
-                    args.putSerializable("chatobj", (Serializable) builder);
+                    args.putSerializable("Notification", builder);
                     intent.putExtra("DATA", args);
                     getApplicationContext().sendBroadcast(intent);
                 }
@@ -96,8 +95,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         for (int i = 0; i < data.length(); i++) {
             JSONObject c = data.getJSONObject(i);
             String title = c.getString("actionTitle");
-            JSONObject payload = c.has("actionpayload") ? c.getJSONObject("actionpayload") : null;
-            //String payload = c.has("actionpayload") ? c.getString("actionpayload") : "0";
+            JSONObject payload = c.has("actionPayload") ? c.getJSONObject("actionPayload") : null;
             String stringPayload = payload != null ? payload.toString() : "";
             String type = c.getString("actionType");
             actions.add(new BefrestActionNotification(title, stringPayload, type));
