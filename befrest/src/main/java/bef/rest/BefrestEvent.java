@@ -32,6 +32,7 @@ class BefrestEvent {
         DISCONNECT,
         REFRESH,
         STOP,
-        PING
+        PING,
+        RETRY
     }
 }
