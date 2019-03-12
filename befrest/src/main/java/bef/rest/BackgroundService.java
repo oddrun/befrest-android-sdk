@@ -14,10 +14,8 @@ import android.util.Log;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 
 import static bef.rest.PushService.TIME_PER_MESSAGE_IN_BATH_MODE;
@@ -42,13 +40,11 @@ public class BackgroundService extends JobService {
     private HandlerThread befrestHandlerThread;
 
     private WebSocketConnectionHandler wscHandler;
-    private Runnable finishJobSuccesfull = new Runnable() {
+    private Runnable finishJobSuccessfully = new Runnable() {
         @SuppressLint("LongLogTag")
         @Override
         public void run() {
-            Log.d(TAG, "jobFinishSuccesfull");
-            Date currentTime = Calendar.getInstance().getTime();
-            sendData(currentTime.toString(), "jobFinishSuccesfull");
+            Log.d(TAG, "finishJobSuccessfully");
             jobFinished(parameters, true);
         }
     };
@@ -81,20 +77,12 @@ public class BackgroundService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "onStartJob: ");
-
         parameters = params;
-        Date currentTime = Calendar.getInstance().getTime();
-        sendData(currentTime.toString(), "onStartJob");
-
 
         initField();
         connectIfNetworkAvailable();
-        mainThreadHandler.postDelayed(finishJobSuccesfull, 15000);
+        mainThreadHandler.postDelayed(finishJobSuccessfully, 15_000);
         return true;
-    }
-
-    private void sendData(String date, String method) {
-
     }
 
     private void connectIfNetworkAvailable() {
@@ -117,9 +105,7 @@ public class BackgroundService extends JobService {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-
-//                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
-                    throw t;
+                    t.printStackTrace();
                 }
             }
         };
@@ -138,7 +124,6 @@ public class BackgroundService extends JobService {
 
             }
 
-            @SuppressLint("LongLogTag")
             @Override
             public void onBefrestMessage(BefrestMessage msg) {
                 switch (msg.type) {
@@ -174,7 +159,6 @@ public class BackgroundService extends JobService {
                 befrestProxy.reportOnClose(BackgroundService.this, code);
                 switch (code) {
                     case CLOSE_UNAUTHORIZED:
-                        break;
                     case CLOSE_CANNOT_CONNECT:
                     case CLOSE_CONNECTION_LOST:
                     case CLOSE_INTERNAL_ERROR:
@@ -197,9 +181,8 @@ public class BackgroundService extends JobService {
     @SuppressLint("LongLogTag")
     @Override
     public void onDestroy() {
-        Date currentTime = Calendar.getInstance().getTime();
         Log.d(TAG, "onDestroy: ");
-        sendData(currentTime.toString(), "onDestroy");
+
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
         if (mConnection != null) {
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
@@ -210,12 +193,8 @@ public class BackgroundService extends JobService {
             if (befrestHandlerThread != null)
                 befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
-//            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
             e.printStackTrace();
         }
-
-   /*     if (befrestActual.isBefrestStarted)
-            befrestProxy.setStartServiceAlarm();*/
         mConnection = null;
         befrestHandlerThread = null;
         Log.d(TAG, "PushService==================onDestroy()_END====================");
@@ -226,11 +205,8 @@ public class BackgroundService extends JobService {
     @Override
     public boolean onStopJob(JobParameters params) {
         Log.w(TAG, "onStopJob: ");
-        Date currentTime = Calendar.getInstance().getTime();
-        sendData(currentTime.toString(), "onStop");
-        mainThreadHandler.removeCallbacks(finishJobSuccesfull);
-        jobFinished(params, false);
-        return false;
+        mainThreadHandler.removeCallbacks(finishJobSuccessfully);
+        return true;
     }
 
     Comparator<BefrestMessage> comparator = new Comparator<BefrestMessage>() {
