@@ -202,18 +202,23 @@ class BefrestConnection extends Handler {
      * setUpFireBase and get Token
      */
     private void setupFireBase() {
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                if (!task.isSuccessful()) {
-                    BefLog.i(TAG, "FCM Token Does Not Received ");
-                    return;
+        try {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+                @Override
+                public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                    if (!task.isSuccessful()) {
+                        BefLog.i(TAG, "FCM Token Does Not Received ");
+                        return;
+                    }
+                    BefLog.i(TAG, "FCM Token Received : " + Objects.requireNonNull(task.getResult()).getToken());
+                    sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
+                    BefrestImpl.canFcmSetup = true;
                 }
-                BefLog.i(TAG, "FCM Token Received : " + Objects.requireNonNull(task.getResult()).getToken());
-                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
-            }
-        });
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void setKeepPingingAlarm(int pingDelay) {
@@ -428,12 +433,16 @@ class BefrestConnection extends Handler {
     private void handleBefrestEvent(BefrestEvent e) {
         switch (e.type) {
             case CONNECT:
+                setupPortAndScheme("wss", 443);
                 connect();
                 checkGooglePlayService(appContext);
                 break;
             case DISCONNECT:
                 disconnect();
                 break;
+            case RETRY:
+                setupPortAndScheme("ws", 80);
+                connect();
             case STOP:
                 mLooper.quit();
                 break;
@@ -454,16 +463,27 @@ class BefrestConnection extends Handler {
     /**
      * check IsDeviceSupportGooglePlayService or Not
      *
-     * @return status if availabe or not
+     * @return status if available or not
      */
     private boolean checkGooglePlayService(Context appContext) {
-        final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(appContext);
-        if (status == ConnectionResult.SUCCESS) {
-            setupFireBase();
-            return true;
+        try {
+            final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(appContext);
+            if (status == ConnectionResult.SUCCESS) {
+                setupFireBase();
+                return true;
+            }
+            BefLog.e(TAG, "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } catch (Throwable t) {
+            t.printStackTrace();
         }
-        BefLog.e(TAG, "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
         return false;
+    }
+
+    private void setupPortAndScheme(String scheme, int port) {
+        mWsScheme = scheme;
+        mWsPort = port;
     }
 
     private void refresh() {
