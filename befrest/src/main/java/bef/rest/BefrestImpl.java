@@ -28,6 +28,8 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -66,6 +68,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     private static final int START_ALARM_CODE = 676428;
     static final int KEEP_PINGING_ALARM_CODE = 676429;
     private JobScheduler jobScheduler;
+    static boolean canFcmSetup;
 
     BefrestImpl(Context context) {
         this.context = context.getApplicationContext();
@@ -222,8 +225,10 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             throw new BefrestException("uId and chId are not properly defined!");
         isBefrestStarted = true;
         saveString(context, PREF_LAST_STATE, null);
+        if (isBefrestStarted && Build.VERSION.SDK_INT >= 26)
+            context.stopService(new Intent(context, pushService));
         if (connectionDataChangedSinceLastStart)
-        context.stopService(new Intent(context, pushService));
+            context.stopService(new Intent(context, pushService));
 
         BefrestImpl.startService(pushService, context, PushService.CONNECT);
         connectionDataChangedSinceLastStart = false;
@@ -252,20 +257,20 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
      * You can call start to run the service later.
      */
     public void stop() {
-        isBefrestStarted = false;
-        context.stopService(new Intent(context, pushService));
-        Util.disableConnectivityChangeListener(context);
+        stopBefrest();
         BefLog.i(TAG, "BefrestImpl Service Stopped.");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    FirebaseInstanceId.getInstance().deleteInstanceId();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        if (canFcmSetup) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        FirebaseInstanceId.getInstance().deleteInstanceId();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        }).start();
+            }).start();
+        }
         BefrestPrefrences.removePrefs(context);
     }
 
@@ -279,7 +284,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         if (topics.length() > 0)
             topics += "-";
         topics += topicName;
-        subscribeFCMTopic(topicName);
+        if (canFcmSetup)
+            subscribeFCMTopic(topicName);
         updateTpics(topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
@@ -303,7 +309,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             topics += topic;
             currTopics.add(topic);
         }
-        subscribeFCMTopics(topics);
+        if (canFcmSetup)
+            subscribeFCMTopics(topics);
         updateTpics(this.topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
@@ -331,7 +338,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     /**
      * unsubscribe param in FCM
      *
-     * @param topicName to unsub
+     * @param topicName to unSubscribe
      */
     private void unsubscribeFCMTopic(String topicName) {
         if (getPrefs(context).getString(PREF_FCM_TOKEN, null) != null)
@@ -367,7 +374,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
-        unsubscribeFCMTopic(topicName);
+        if (canFcmSetup)
+            unsubscribeFCMTopic(topicName);
         return true;
     }
 
@@ -383,7 +391,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             resTopics = resTopics.substring(0, resTopics.length() - 1);
         updateTpics(resTopics);
         BefLog.i(TAG, "Topics: " + topics);
-        unsubscribeFCMTopics(toRemove);
+        if (canFcmSetup)
+            unsubscribeFCMTopics(toRemove);
         return this;
     }
 
@@ -466,16 +475,9 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
 
     public void setStartServiceAlarm() {
         BefLog.i(TAG, "setStartServiceAlarm: ");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            saveString(context, PREF_LAST_STATE, "true");
-            jobScheduler.schedule(new JobInfo.Builder(1001,
-                    new ComponentName(context, BackgroundService.class))
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setMinimumLatency(1000 * 5)
-                    .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
-                    .setOverrideDeadline(1000 * 60 * 60 * 6)
-                    .setPersisted(true)
-                    .build());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            stopBefrest();
+            //setupJobScheduler();
         } else {
             AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             Intent intent = new Intent(context, pushService).putExtra(PushService.SERVICE_STOPPED, true);
@@ -491,9 +493,17 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
 
     }
 
-    public static void sendCrash(String stackTrace, Context mcontext) {
-
-
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void setupJobScheduler() {
+        saveString(context, PREF_LAST_STATE, "true");
+        jobScheduler.schedule(new JobInfo.Builder(1001,
+                new ComponentName(context, BackgroundService.class))
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setMinimumLatency(1000 * 5)
+                .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
+                .setOverrideDeadline(1000 * 60 * 60 * 6)
+                .setPersisted(true)
+                .build());
     }
 
     private void clearTempData() {
@@ -588,14 +598,29 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
     }
 
+    private void stopBefrest() {
+        Log.i(TAG, "stopBefrest: ");
+        if (isBefrestStarted) {
+            isBefrestStarted = false;
+            context.stopService(new Intent(context, pushService));
+            Util.disableConnectivityChangeListener(context);
+        }
+    }
+
     @Override
     public void onAppForeGrounded() {
+        Log.i(TAG, "onAppForeGrounded: ");
         start();
     }
 
     @Override
     public void onAppBackground() {
-
+        Log.i(TAG, "onAppBackground: ");
+        if (Build.VERSION.SDK_INT >= 26) {
+            Log.i(TAG, "Api Version is upper than 26");
+            stopBefrest();
+            //setupJobScheduler();
+        }
     }
 
     class BefrestException extends RuntimeException {
