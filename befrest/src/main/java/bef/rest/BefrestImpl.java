@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-
 import static bef.rest.BefrestPrefrences.PREF_AUTH;
 import static bef.rest.BefrestPrefrences.PREF_CH_ID;
 import static bef.rest.BefrestPrefrences.PREF_CONNECT_ANOMALY_DATA_RECORDING_TIME;
@@ -290,7 +289,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         if (topics.length() > 0)
             topics += "-";
         topics += topicName;
-
+        subscribeFCMTopic(topicName);
         updateTpics(topics);
         BefLog.i(TAG, "Topics: " + topics);
         return this;
@@ -541,6 +540,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             subscribeHeaders = new ArrayList<>();
             subscribeHeaders.add(getAuthHeader());
             subscribeHeaders.add(hasFCMToken());
+            subscribeHeaders.add(getPlatformHeader());
             if (topics != null && topics.length() > 0)
                 subscribeHeaders.add(new NameValuePair("X-BF-TOPICS", topics));
         }
@@ -594,7 +594,6 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
         if (System.currentTimeMillis() - connectAnomalyDataRecordingStartTime > WAIT_TIME_BEFORE_SENDING_CONNECT_ANOMLY_REPORT)
             if (reportedContinuousCloses > 75) {
-
                 clearAnomalyHistory();
             }
     }

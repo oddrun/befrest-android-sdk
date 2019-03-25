@@ -44,7 +44,6 @@ public final class BefrestConnectivityChangeReceiver extends BroadcastReceiver {
                     flag = PushService.NETWORK_DISCONNECTED;
             BefrestImpl.startService(pushService, context, flag);
         } catch (Throwable t) {
-//            BefrestImpl.sendCrash(t.getCause().getMessage());
 //            BefrestImpl.sendCrash(t.getCause().getMessage(),context);
             throw t;
         }

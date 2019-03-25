@@ -33,7 +33,6 @@ interface BefrestInternal {
 
     void setStartServiceAlarm();
 
-
     String getSubscribeUri();
 
     List<NameValuePair> getSubscribeHeaders();

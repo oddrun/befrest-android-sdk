@@ -27,6 +27,14 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -42,6 +50,7 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
 import static bef.rest.BefrestPrefrences.PREF_SERVICE_CHOOSER;
 import static bef.rest.BefrestPrefrences.getPrefs;
 
@@ -190,21 +199,24 @@ class BefrestConnection extends Handler {
      * setUpFireBase and get Token
      */
     private void setupFireBase() {
-        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-            @Override
-            public void onComplete(@NonNull Task<InstanceIdResult> task) {
-                if (!task.isSuccessful()) {
-                    BefLog.i(TAG, "FCM Token Does Not Received ");
-                    return;
-                }
+        try {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                @Override
+                public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                    if (!task.isSuccessful()) {
+                        BefLog.i(TAG, "FCM Token Does Not Received ");
+                        return;
+                    }
                  /*
                    pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
                   */
-                BefLog.i(TAG, task.getResult().getToken());
-                sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
-            }
-        });
+                    BefLog.i(TAG, task.getResult().getToken());
+                    sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
+                }
+            });
+        } catch (Exception e) {
+
+        }
     }
 
     private void setKeepPingingAlarm(int pingDelay) {
@@ -271,7 +283,7 @@ class BefrestConnection extends Handler {
                 BefLog.i(TAG, "Could not send ack as mWriter is null (befrest is disconnected before we send ack message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+
         }
     }
 
@@ -296,7 +308,7 @@ class BefrestConnection extends Handler {
                 BefLog.i(TAG, "Could not send Fcm as mWriter is null (befrest is disconnected before we send ack message)");
             }
         } catch (Exception e) {
-            BefrestImpl.sendCrash(e.getCause().getMessage(), appContext);
+
         }
     }
 
