@@ -11,7 +11,7 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
     private BefrestAppDelegate mBefrestAppDelegate;
     private boolean isforeground = false;
 
-    public BefrestAppLifeCycle(BefrestAppDelegate mBefrestAppDelegate) {
+    BefrestAppLifeCycle(BefrestAppDelegate mBefrestAppDelegate) {
         this.mBefrestAppDelegate = mBefrestAppDelegate;
     }
 
@@ -29,7 +29,7 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
     public void onActivityResumed(Activity activity) {
         if (!isforeground) {
             isforeground = true;
-            mBefrestAppDelegate.appOnforeground();
+            mBefrestAppDelegate.onAppForeGrounded();
         }
     }
 
@@ -58,7 +58,7 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
         if (level == TRIM_MEMORY_UI_HIDDEN) {
             if (isforeground) {
                 isforeground = false;
-                mBefrestAppDelegate.apponBackground();
+                mBefrestAppDelegate.onAppBackground();
             }
         }
     }
