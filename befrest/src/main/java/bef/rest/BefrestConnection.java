@@ -28,7 +28,6 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -208,14 +207,12 @@ class BefrestConnection extends Handler {
                         BefLog.i(TAG, "FCM Token Does Not Received ");
                         return;
                     }
-                 /*
-                   pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
-                  */
                     BefLog.i(TAG, task.getResult().getToken());
                     sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
+                    BefrestImpl.canFcmSetup = true;
                 }
             });
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
     }
@@ -317,6 +314,7 @@ class BefrestConnection extends Handler {
 
     /**
      * Build String to Write OnWebSocket
+     *
      * @return "prevToken"~"newToken"
      */
     private String FCMTokenBuilder(String prevToken, String newToken) {

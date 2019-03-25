@@ -323,7 +323,7 @@ public class PushService extends Service {
     @Override
     public final void onTaskRemoved(Intent rootIntent) {
         BefLog.i(TAG, "PushService onTaskRemoved: ");
-        if (befrestActual.isBefrestStarted)
+        if (BefrestImpl.isBefrestStarted)
             befrestProxy.setStartServiceAlarm();
         super.onTaskRemoved(rootIntent);
     }
@@ -497,7 +497,7 @@ public class PushService extends Service {
      * @param messages messages
      */
     protected void onPushReceived(ArrayList<BefrestMessage> messages) {
-        BefLog.w(TAG,"onPushReceived");
+        BefLog.w(TAG, "onPushReceived");
         Parcelable[] data = new BefrestMessage[messages.size()];
         Bundle b = new Bundle(1);
         b.putParcelableArray(BefrestImpl.Util.KEY_MESSAGE_PASSED, messages.toArray(data));
