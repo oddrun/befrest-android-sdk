@@ -9,7 +9,7 @@ import java.security.NoSuchAlgorithmException;
 public class BefrestAuth {
 
     private static final long UID = 12013;
-    private static final String API_KEY = "35441137E5EED91C1E3ED70A23978387";
+    private static final String API_KEY = "D54B1EEB01D790476511D938A8C5FB28";
     private static final String SHARED_KEY = "mohamad-hossein-yamini-nia-key-4";
 
     public String generatePublishAuth(String chid) {

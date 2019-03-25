@@ -562,7 +562,6 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
                 isJobScheduled = false;
             }
         }
-        Log.i(TAG, "onAppForeGrounded: ");
         innerStart();
     }
 

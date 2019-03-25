@@ -81,7 +81,7 @@ public class PushService extends Service {
     private static int batchSize;
     private boolean isBachReceiveMode;
 
-    static final int START_SERVICE_AFTER_ILLEGAL_STOP_DELAY = 150 * 1000;
+    static final int START_SERVICE_AFTER_ILLEGAL_STOP_DELAY = 15 * 1000;
 
     private boolean authProblemSinceLastStart = false;
 
@@ -296,9 +296,8 @@ public class PushService extends Service {
     public final int onStartCommand(Intent intent, int flags, int startId) {
         handleEvent(getIntentEvent(intent));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return START_NOT_STICKY;
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -313,7 +312,7 @@ public class PushService extends Service {
             e.printStackTrace();
         }
         unRegisterBroadCastReceiver();
-        if (befrestActual.isBefrestStarted)
+        if (BefrestImpl.isBefrestStarted)
             befrestProxy.setStartServiceAlarm();
         mConnection = null;
         befrestHandlerThread = null;
@@ -324,7 +323,7 @@ public class PushService extends Service {
     @Override
     public final void onTaskRemoved(Intent rootIntent) {
         BefLog.i(TAG, "PushService onTaskRemoved: ");
-        if (befrestActual.isBefrestStarted)
+        if (BefrestImpl.isBefrestStarted)
             befrestProxy.setStartServiceAlarm();
         super.onTaskRemoved(rootIntent);
     }
@@ -415,11 +414,12 @@ public class PushService extends Service {
     }
 
     private void handleServiceStopped() {
-        if (befrestActual.isBefrestStarted) {
+        if (BefrestImpl.isBefrestStarted) {
+            Log.i(TAG, "handleServiceStopped: " + retryInProgress);
             if (!(retryInProgress))
                 connectIfNetworkAvailable();
         } else {
-            Log.i(TAG, "handleServiceStopped: else ------");
+            Log.i(TAG, "handleServiceStopped: ");
             stopSelf();
         }
     }
