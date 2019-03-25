@@ -27,16 +27,16 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemClock;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-
-import bef.rest.connection.HttpPostAsyncTask;
+import java.util.concurrent.TimeUnit;
 
 import static bef.rest.BefrestPrefrences.PREF_AUTH;
 import static bef.rest.BefrestPrefrences.PREF_CH_ID;
@@ -44,9 +44,9 @@ import static bef.rest.BefrestPrefrences.PREF_CONNECT_ANOMALY_DATA_RECORDING_TIM
 import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES;
 import static bef.rest.BefrestPrefrences.PREF_CONTINUOUS_CLOSES_TYPES;
 import static bef.rest.BefrestPrefrences.PREF_CUSTOM_PUSH_SERVICE_NAME;
-import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
 import static bef.rest.BefrestPrefrences.PREF_LAST_SUCCESSFUL_CONNECT_TIME;
 import static bef.rest.BefrestPrefrences.PREF_LOG_LEVEL;
+import static bef.rest.BefrestPrefrences.PREF_SERVICE_CHOOSER;
 import static bef.rest.BefrestPrefrences.PREF_TOPICS;
 import static bef.rest.BefrestPrefrences.PREF_U_ID;
 import static bef.rest.BefrestPrefrences.getPrefs;
@@ -65,19 +65,24 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     static final int KEEP_PINGING_ALARM_CODE = 676429;
     private JobScheduler jobScheduler;
     private boolean connectionDataChangedSinceLastStart;
+    private BefrestAppLifeCycle befrestAppLifeCycle;
+    private Handler handler = new Handler();
+    private Runnable startService = new Runnable() {
+        @Override
+        public void run() {
+            if (!isJobScheduled && !isBefrestStarted)
+                innerStart();
+        }
+    };
 
     BefrestImpl(Context context) {
         this.context = context.getApplicationContext();
         SharedPreferences prefs = getPrefs(context);
         uId = prefs.getLong(PREF_U_ID, -1);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         }
-        BefrestAppLifeCycle befrestAppLifeCycle = new BefrestAppLifeCycle(this);
-        context.registerComponentCallbacks(befrestAppLifeCycle);
-        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
         chId = prefs.getString(PREF_CH_ID, null);
-        prefs.getString(PREF_LAST_STATE, null);
         auth = prefs.getString(PREF_AUTH, null);
         topics = prefs.getString(PREF_TOPICS, "");
         logLevel = prefs.getInt(PREF_LOG_LEVEL, LOG_LEVEL_DEFAULT);
@@ -104,8 +109,10 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     private String chId;
     private String auth;
     private int logLevel;
-    boolean isBefrestStarted;
+    static boolean isBefrestStarted;
+    private boolean isJobScheduled;
     private String topics;
+
 
     boolean refreshIsRequested = false;
     private long lastAcceptedRefreshRequestTime = 0;
@@ -132,7 +139,6 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
      * @param chId chId
      */
     public Befrest init(long uId, String auth, String chId) {
-
         if (chId == null || !(chId.length() > 0))
             throw new BefrestException("invalid chId!");
         if (uId != this.uId || (auth != null && !auth.equals(this.auth)) || !chId.equals(this.chId)) {
@@ -141,9 +147,6 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             this.chId = chId;
             clearTempData();
             saveToPrefs(context, uId, auth, chId);
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            start();
         }
         return this;
     }
@@ -217,25 +220,27 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
      * @throws IllegalStateException if be called without a prior call to init()
      */
 
-    public void start() {
+    private void innerStart() {
         BefLog.i(TAG, "starting befrest");
         if (uId < 0 || chId == null || chId.length() < 1)
             throw new BefrestException("uId and chId are not properly defined!");
-        isBefrestStarted = true;
-        saveString(context, PREF_LAST_STATE, null);
+        saveString(context, PREF_SERVICE_CHOOSER, null);
         if (connectionDataChangedSinceLastStart)
-        context.stopService(new Intent(context, pushService));
+            context.stopService(new Intent(context, pushService));
         BefrestImpl.startService(pushService, context, PushService.CONNECT);
         connectionDataChangedSinceLastStart = false;
-
+        isBefrestStarted = true;
         Util.enableConnectivityChangeListener(context);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
-            if (jobScheduler.getAllPendingJobs().size() > 0) {
-                jobScheduler.cancelAll();
-                BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
-            }
-        }
+
+    }
+
+    @Override
+    public void start() {
+        Log.i(TAG, "start: ");
+        handler.postDelayed(startService, 500);
+        befrestAppLifeCycle = new BefrestAppLifeCycle(this);
+        context.registerComponentCallbacks(befrestAppLifeCycle);
+        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
     }
 
     static void startService(Class<?> pushService, Context context, String flag) {
@@ -243,9 +248,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
             Intent intent = new Intent(context, pushService);
             intent.putExtra(flag, true);
             context.startService(intent);
-        } catch (IllegalStateException e) {
-
-//            sendCrash(e.getCause().getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -254,9 +258,8 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
      * You can call start to run the service later.
      */
     public void stop() {
-        isBefrestStarted = false;
-        context.stopService(new Intent(context, pushService));
-        Util.disableConnectivityChangeListener(context);
+        ((Application) context).unregisterActivityLifecycleCallbacks(befrestAppLifeCycle);
+        stopBefrest();
         BefLog.i(TAG, "BefrestImpl Service Stopped.");
         BefrestPrefrences.removePrefs(context);
     }
@@ -300,6 +303,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         BefLog.i(TAG, "Topics: " + topics);
         return this;
     }
+
     /**
      * remove a topic from current topics that user has.
      *
@@ -368,7 +372,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
     }
 
     /**
-     * Register a new push receiver. Any registered receiver <i><b>must be</b></i> unregistered
+     * Register a new push receiver. Any registered receiver <i><beforeShowCallBack>must be</beforeShowCallBack></i> unregistered
      * by passing the same receiver object to {@link #unregisterPushReceiver}. Actually the method
      * registers a BroadcastReceiver considering security using permissions.
      *
@@ -416,36 +420,41 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
 
 
     public void setStartServiceAlarm() {
-        BefLog.i(TAG, "setStartServiceAlarm: ");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            saveString(context, PREF_LAST_STATE, "true");
-            jobScheduler.schedule(new JobInfo.Builder(1001,
-                    new ComponentName(context, BackgroundService.class))
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setMinimumLatency(1000 * 60 * 5)
-                    .setBackoffCriteria(10000, JobInfo.BACKOFF_POLICY_LINEAR)
-                    .setOverrideDeadline(1000 * 60 * 60 * 6)
-                    .setPersisted(true)
-                    .setPersisted(true)
-                    .build());
-        } else {
+        Log.i(TAG, "setStartServiceAlarm: ");
+        stopBefrest();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
+        } else {
             AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             Intent intent = new Intent(context, pushService).putExtra(PushService.SERVICE_STOPPED, true);
             PendingIntent pi = PendingIntent.getService(context, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            alarmMgr.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY,
+                    3 * 60 * 1000, pi);
+            /*
             long triggerAtMillis = SystemClock.elapsedRealtime() + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY;
             alarmMgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pi);
+            */
             BefLog.i(TAG, "BefrestImpl Scheduled To Start Service In " + PushService.START_SERVICE_AFTER_ILLEGAL_STOP_DELAY + "ms");
         }
     }
 
-
-    public static void sendCrash(String stackTrace) {
-        Map<String, String> postData = new HashMap<>();
-        postData.put("chid", stackTrace);
-        HttpPostAsyncTask task = null;
-        task = new HttpPostAsyncTask(stackTrace);
-        task.execute("https://api-v2.resana.io/bef/cr");
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void setupJobScheduler() {
+        isJobScheduled = true;
+        saveString(context, PREF_SERVICE_CHOOSER, "true");
+        JobInfo jobInfo = new JobInfo.Builder(1001,
+                new ComponentName(context, BackgroundService.class))
+                .setPeriodic(TimeUnit.MINUTES.toMillis(15), TimeUnit.MINUTES.toMillis(5))
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setPersisted(true)
+                .setBackoffCriteria(TimeUnit.MINUTES.toMillis(1),
+                        JobInfo.BACKOFF_POLICY_LINEAR)
+                .build();
+        jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if (jobScheduler.schedule(jobInfo) == JobScheduler.RESULT_SUCCESS) {
+            Log.i(TAG, "setupJobScheduler: ok");
+        }
 
     }
 
@@ -453,7 +462,7 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         subscribeUrl = null;
         subscribeHeaders = null;
         authHeader = null;
-        connectionDataChangedSinceLastStart = false;
+        connectionDataChangedSinceLastStart = true;
 
     }
 
@@ -534,16 +543,38 @@ final class BefrestImpl implements Befrest, BefrestInternal, BefrestAppDelegate 
         saveInt(context, PREF_CONTINUOUS_CLOSES, reportedContinuousCloses);
     }
 
-    @Override
-    public void appOnforeground() {
-        BefLog.i(TAG, "appOnforeground: ");
-        start();
+    private void stopBefrest() {
+        Log.i(TAG, "stopBefrest: ");
+        if (isBefrestStarted) {
+            isBefrestStarted = false;
+            context.stopService(new Intent(context, pushService));
+            Util.disableConnectivityChangeListener(context);
+        }
     }
 
     @Override
-    public void apponBackground() {
-        BefLog.i(TAG, "apponBackground: ");
+    public void onAppForeGrounded() {
+        handler.removeCallbacks(startService);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (jobScheduler != null && jobScheduler.getAllPendingJobs().size() > 0) {
+                BefLog.w(TAG, String.valueOf(jobScheduler.getAllPendingJobs().size()));
+                jobScheduler.cancelAll();
+                isJobScheduled = false;
+            }
+        }
+        Log.i(TAG, "onAppForeGrounded: ");
+        innerStart();
+    }
 
+    @Override
+    public void onAppBackground() {
+        handler.removeCallbacks(startService);
+        Log.i(TAG, "onAppBackground: ");
+        if (Build.VERSION.SDK_INT >= 26) {
+            Log.i(TAG, "Api Version is upper than 26");
+            stopBefrest();
+            setupJobScheduler();
+        }
     }
 
     class BefrestException extends RuntimeException {
