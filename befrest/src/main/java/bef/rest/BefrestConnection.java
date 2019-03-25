@@ -42,7 +42,7 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
+import static bef.rest.BefrestPrefrences.PREF_SERVICE_CHOOSER;
 import static bef.rest.BefrestPrefrences.getPrefs;
 
 class BefrestConnection extends Handler {
@@ -129,7 +129,7 @@ class BefrestConnection extends Handler {
         if (!isValid) return;
         cancelUpcommingRestart();
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+        if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
             setNextPingToSendInFuture();
         notifyConnectionRefreshedIfNeeded();
     }
@@ -158,7 +158,7 @@ class BefrestConnection extends Handler {
         if (restartInProgress || System.currentTimeMillis() - lastPingSetTime < getPingInterval() / 2)
             return;
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+        if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
             setNextPingToSendInFuture();
         BefLog.i(TAG, "BefrestImpl Pinging Revised");
     }
@@ -175,7 +175,7 @@ class BefrestConnection extends Handler {
     }
 
 
-    public BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
+    BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
         super(looper);
         this.mLooper = looper;
         this.mWsHandler = wsHandler;
@@ -319,9 +319,8 @@ class BefrestConnection extends Handler {
                 postDelayed(releaseConnectWakeLock, 2000);
                 notifyConnectionRefreshedIfNeeded();
                 prevSuccessfulPings = 0;
-                if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+                if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
                     setNextPingToSendInFuture();
-
             } else {
                 BefLog.w(TAG, "could not call onOpen() .. serverHandshake was not successful");
             }
@@ -371,8 +370,8 @@ class BefrestConnection extends Handler {
                 mLooper.quit();
                 break;
             case REFRESH: {
-                BefLog.i(TAG, "handleBefrestEvent: " + getPrefs(appContext).getString(PREF_LAST_STATE, null));
-                if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
+                BefLog.i(TAG, "handleBefrestEvent: " + getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null));
+                if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null) {
                     BefLog.i(TAG, "handleBefrestEvent: ");
                     refresh();
                 }
@@ -393,7 +392,7 @@ class BefrestConnection extends Handler {
 //            prevSuccessfulPings = 0; seems illogical
             cancelFuturePing();
             cancelUpcommingRestart();
-            if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
+            if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null) {
                 setNextPingToSendInFuture(0);
             }
 
@@ -446,7 +445,7 @@ class BefrestConnection extends Handler {
                     throw e;
             }
         }
-        BefLog.i(TAG, "--------------------------connect()_END--------------------");
+        BefLog.i(TAG, "--------------------------connect()_END--------------------------");
     }
 
     private void waitABit() {
