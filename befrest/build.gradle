@@ -3,13 +3,10 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'digital.wup.android-maven-publish'
 
 def packageName = 'bef.rest'
-def libraryVersion = '1.0.0'
+def libraryVersion = '3.0.0'
 
 android {
     compileSdkVersion 28
-
-
-
     defaultConfig {
         minSdkVersion 15
         targetSdkVersion 28
@@ -29,7 +26,7 @@ android {
 
 }
 
-version = '1.0.0'
+version = '3.0.0'
 
 task jar(type: Jar, dependsOn: 'assembleRelease') {
     from fileTree(dir: 'build/intermediates/classes/release')
@@ -39,18 +36,17 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     //noinspection GradleCompatible
-    implementation "com.android.support:support-core-utils:28.0.0"
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support:appcompat-v7:28.0.0-rc02'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-    implementation "com.squareup.retrofit2:retrofit:2.5.0"
-    implementation "com.squareup.retrofit2:converter-gson:2.5.0"
-    implementation "com.squareup.okhttp3:okhttp:3.12.1"
+    implementation "com.squareup.retrofit2:retrofit:2.0.0"
+    implementation "com.squareup.retrofit2:converter-gson:2.0.0"
+    implementation "com.squareup.okhttp3:okhttp:3.0.1"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:3.0.1"
     implementation "com.squareup.okhttp3:logging-interceptor:3.4.1"
     implementation 'com.google.firebase:firebase-messaging:17.3.4'
-    
+    implementation 'com.google.firebase:firebase-core:16.0.6'
 }
 
 publishing {
@@ -63,6 +59,25 @@ publishing {
 
             // Tell maven to prepare the generated "*.aar" file for publishing
             artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+        }
+    }
+}
+artifactory {
+    contextUrl = 'https://maven.oddrun.ir/artifactory'
+    publish {
+        repository {
+            repoKey = 'befrest'
+            username = "${artifactory_username}"
+            password = "${artifactory_password}"
+        }
+        defaults {
+            publications('aar')
+            publishArtifacts = true
+
+            // Properties to be attached to the published artifacts.
+            properties = ['qa.level': 'basic', 'dev.team': 'core']
+            // Publish generated POM files to Artifactory (true by default)
+            publishPom = true
         }
     }
 }

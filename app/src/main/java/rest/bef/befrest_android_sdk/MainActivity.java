@@ -75,8 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initBefrest() {
         BefrestFactory.getInstance(MainActivity.this)
-                .init(12013, auth, chid)
-                .start();
+                .init(12013, auth, chid);
     }
 
     private String getAuth() {

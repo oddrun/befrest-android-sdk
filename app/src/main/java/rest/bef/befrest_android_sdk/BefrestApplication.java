@@ -12,6 +12,7 @@ public class BefrestApplication extends Application {
         super.onCreate();
         Log.i("BEFRESTAPP", "------------------------------onCreate:------------------------------");
         BefrestFactory.getInstance(this)
-                .init(12013, "CmLxC9DVztyi-pxi54xZKA", "quickstartchannel");
+                .init(12013, new BefrestAuth().generateSubscriptionAuth("ch02", 2), "ch02").start();
+
     }
 }

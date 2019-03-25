@@ -42,6 +42,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Parcelable;
+import android.util.Log;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -216,6 +217,7 @@ public class PushService extends Service {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
+//                    BefrestImpl.sendCrash(t.getMessage());
 //                    befrestProxy.sendCrash(t.getMessage());
                     throw t;
                 }
@@ -295,9 +297,8 @@ public class PushService extends Service {
     public final int onStartCommand(Intent intent, int flags, int startId) {
         handleEvent(getIntentEvent(intent));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return START_NOT_STICKY;
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -312,7 +313,7 @@ public class PushService extends Service {
             e.printStackTrace();
         }
         unRegisterBroadCastReceiver();
-        if (befrestActual.isBefrestStarted)
+        if (BefrestImpl.isBefrestStarted)
             befrestProxy.setStartServiceAlarm();
         mConnection = null;
         befrestHandlerThread = null;
@@ -323,7 +324,7 @@ public class PushService extends Service {
     @Override
     public final void onTaskRemoved(Intent rootIntent) {
         BefLog.i(TAG, "PushService onTaskRemoved: ");
-        if (befrestActual.isBefrestStarted)
+        if (BefrestImpl.isBefrestStarted)
             befrestProxy.setStartServiceAlarm();
         super.onTaskRemoved(rootIntent);
     }
@@ -414,10 +415,12 @@ public class PushService extends Service {
     }
 
     private void handleServiceStopped() {
-        if (befrestActual.isBefrestStarted) {
+        if (BefrestImpl.isBefrestStarted) {
+            Log.i(TAG, "handleServiceStopped: " + retryInProgress);
             if (!(retryInProgress))
                 connectIfNetworkAvailable();
         } else {
+            Log.i(TAG, "handleServiceStopped: ");
             stopSelf();
         }
     }

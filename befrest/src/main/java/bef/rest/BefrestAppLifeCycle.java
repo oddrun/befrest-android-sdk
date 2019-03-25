@@ -8,11 +8,11 @@ import android.os.Bundle;
 
 public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbacks, ComponentCallbacks2 {
 
-    BefrestAppDelegate befrestLifeCycle;
-    private boolean isAppForeground = false;
+    private BefrestAppDelegate mBefrestAppDelegate;
+    private boolean isforeground = false;
 
-    public BefrestAppLifeCycle(BefrestAppDelegate befrestLifeCycle) {
-        this.befrestLifeCycle = befrestLifeCycle;
+    BefrestAppLifeCycle(BefrestAppDelegate mBefrestAppDelegate) {
+        this.mBefrestAppDelegate = mBefrestAppDelegate;
     }
 
     @Override
@@ -27,9 +27,9 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
 
     @Override
     public void onActivityResumed(Activity activity) {
-        if (!isAppForeground) {
-            isAppForeground = true;
-            befrestLifeCycle.onAppForeGrounded();
+        if (!isforeground) {
+            isforeground = true;
+            mBefrestAppDelegate.onAppForeGrounded();
         }
     }
 
@@ -55,11 +55,10 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
 
     @Override
     public void onTrimMemory(int level) {
-        if (isAppForeground) {
-            if (level == TRIM_MEMORY_UI_HIDDEN) {
-                isAppForeground = false;
-                befrestLifeCycle.onAppBackground();
-
+        if (level == TRIM_MEMORY_UI_HIDDEN) {
+            if (isforeground) {
+                isforeground = false;
+                mBefrestAppDelegate.onAppBackground();
             }
         }
     }
