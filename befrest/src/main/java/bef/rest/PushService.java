@@ -42,6 +42,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Parcelable;
+import android.util.Log;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -215,12 +216,15 @@ public class PushService extends Service {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-                    t.printStackTrace();
+//                    BefrestImpl.sendCrash(t.getMessage());
+//                    befrestProxy.sendCrash(t.getMessage());
+                    throw t;
                 }
             }
         };
         super.onCreate();
     }
+
 
 
     private void createWebsocketConnectionHanlder() {
@@ -287,13 +291,13 @@ public class PushService extends Service {
     }
 
 
+
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
         handleEvent(getIntentEvent(intent));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return START_NOT_STICKY;
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -308,11 +312,8 @@ public class PushService extends Service {
             e.printStackTrace();
         }
         unRegisterBroadCastReceiver();
-        if (befrestActual.isBefrestStarted) {
-            if (Build.VERSION.SDK_INT < 26) {
-                befrestProxy.setStartServiceAlarm();
-            }
-        }
+        if (BefrestImpl.isBefrestStarted)
+            befrestProxy.setStartServiceAlarm();
         mConnection = null;
         befrestHandlerThread = null;
         super.onDestroy();
@@ -339,7 +340,7 @@ public class PushService extends Service {
                 break;
             case RETRY:
                 retryInProgress = false;
-                retryIfNetworkAvailable();
+                connectIfNetworkAvailable();
                 break;
             case NETWORK_DISCONNECTED:
                 cancelFutureRetry();
@@ -366,15 +367,6 @@ public class PushService extends Service {
         }
         if (BefrestImpl.Util.isConnectedToInternet(this))
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.CONNECT));
-    }
-
-    private void retryIfNetworkAvailable() {
-        if (retryInProgress) {
-            cancelFutureRetry();
-            prevFailedConnectTries = 0;
-        }
-        if (BefrestImpl.Util.isConnectedToInternet(this))
-            mConnection.forward(new BefrestEvent(BefrestEvent.Type.RETRY));
     }
 
     private String getIntentEvent(Intent intent) {
@@ -422,9 +414,13 @@ public class PushService extends Service {
     }
 
     private void handleServiceStopped() {
-        if (befrestActual.isBefrestStarted) {
+        if (BefrestImpl.isBefrestStarted) {
+            Log.i(TAG, "handleServiceStopped: " + retryInProgress);
             if (!(retryInProgress))
                 connectIfNetworkAvailable();
+        } else {
+            Log.i(TAG, "handleServiceStopped: ");
+            stopSelf();
         }
     }
 
@@ -501,7 +497,7 @@ public class PushService extends Service {
      * @param messages messages
      */
     protected void onPushReceived(ArrayList<BefrestMessage> messages) {
-        BefLog.w(TAG, "onPushReceived");
+        BefLog.w(TAG,"onPushReceived");
         Parcelable[] data = new BefrestMessage[messages.size()];
         Bundle b = new Bundle(1);
         b.putParcelableArray(BefrestImpl.Util.KEY_MESSAGE_PASSED, messages.toArray(data));

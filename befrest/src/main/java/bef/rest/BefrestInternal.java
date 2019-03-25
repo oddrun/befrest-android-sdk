@@ -40,8 +40,6 @@ interface BefrestInternal {
 
     void setStartServiceAlarm();
 
-    void sendCrash(String stackTrace);
-
     String getSubscribeUri();
 
     List<NameValuePair> getSubscribeHeaders();

@@ -3,6 +3,7 @@ package bef.rest;
 import android.annotation.SuppressLint;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
+import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,11 +13,17 @@ import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static bef.rest.PushService.TIME_PER_MESSAGE_IN_BATH_MODE;
 
@@ -40,12 +47,14 @@ public class BackgroundService extends JobService {
     private HandlerThread befrestHandlerThread;
 
     private WebSocketConnectionHandler wscHandler;
-    private Runnable finishJobSuccessfully = new Runnable() {
+    private Runnable jobFinishSuccessfully = new Runnable() {
         @SuppressLint("LongLogTag")
         @Override
         public void run() {
-            Log.d(TAG, "finishJobSuccessfully");
-            jobFinished(parameters, true);
+            saveIntoFile("jobFinishSuccessfully");
+            Log.d(TAG, "jobFinishSuccessfully");
+            jobFinished(parameters, false);
+            BefrestImpl.isBefrestStarted = false;
         }
     };
 
@@ -76,14 +85,34 @@ public class BackgroundService extends JobService {
     @SuppressLint("LongLogTag")
     @Override
     public boolean onStartJob(JobParameters params) {
+        saveIntoFile("onStartJob");
         Log.d(TAG, "onStartJob: ");
-        parameters = params;
 
+        parameters = params;
         initField();
         connectIfNetworkAvailable();
-        mainThreadHandler.postDelayed(finishJobSuccessfully, 15_000);
+        BefrestImpl.isBefrestStarted = true;
+        mainThreadHandler.postDelayed(jobFinishSuccessfully, 20_000);
         return true;
     }
+
+    private void saveIntoFile(String method) {
+        FileOutputStream outputStream = null;
+        try {
+            outputStream = openFileOutput("savedData.txt", Context.MODE_APPEND);
+            Calendar calendar = Calendar.getInstance(Locale.getDefault());
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+            int date = calendar.get(Calendar.DAY_OF_MONTH);
+            outputStream.write(String.valueOf(method + "-->" + hour + ":" + minute + "\t" + date + "\n\n").getBytes());
+            outputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private void connectIfNetworkAvailable() {
         if (BefrestImpl.Util.isConnectedToInternet(this))
@@ -95,7 +124,7 @@ public class BackgroundService extends JobService {
         Log.d(TAG, "PushService: " + System.identityHashCode(this) + "  onCreate()");
         befrestProxy = BefrestFactory.getInternalInstance(this);
         befrestActual = ((BefrestInvocHandler) Proxy.getInvocationHandler(befrestProxy)).obj;
-        createWebsocketConnectionHanlder();
+        createWebsocketConnectionHandler();
         befrestHandlerThread = new HandlerThread("BefrestThread");
         befrestHandlerThread.start();
         mConnection = new BefrestConnection(this, befrestHandlerThread.getLooper(), wscHandler, befrestProxy.getSubscribeUri(), befrestProxy.getSubscribeHeaders());
@@ -105,13 +134,16 @@ public class BackgroundService extends JobService {
                 try {
                     super.handleMessage(msg);
                 } catch (Throwable t) {
-                    t.printStackTrace();
+
+//                    BefrestImpl.sendCrash(t.getCause().getMessage(), getApplicationContext());
+                    throw t;
+
                 }
             }
         };
     }
 
-    private void createWebsocketConnectionHanlder() {
+    private void createWebsocketConnectionHandler() {
         wscHandler = new WebSocketConnectionHandler() {
 
             @SuppressLint("LongLogTag")
@@ -124,6 +156,7 @@ public class BackgroundService extends JobService {
 
             }
 
+            @SuppressLint("LongLogTag")
             @Override
             public void onBefrestMessage(BefrestMessage msg) {
                 switch (msg.type) {
@@ -159,6 +192,7 @@ public class BackgroundService extends JobService {
                 befrestProxy.reportOnClose(BackgroundService.this, code);
                 switch (code) {
                     case CLOSE_UNAUTHORIZED:
+                        break;
                     case CLOSE_CANNOT_CONNECT:
                     case CLOSE_CONNECTION_LOST:
                     case CLOSE_INTERNAL_ERROR:
@@ -181,9 +215,8 @@ public class BackgroundService extends JobService {
     @SuppressLint("LongLogTag")
     @Override
     public void onDestroy() {
-        Log.d(TAG, "onDestroy: ");
-
-        Log.d(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
+        saveIntoFile("noDestroy");
+        BefLog.i(TAG, "PushService: " + System.identityHashCode(this) + "==================onDestroy()_START===============");
         if (mConnection != null) {
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.DISCONNECT));
             mConnection.forward(new BefrestEvent(BefrestEvent.Type.STOP));
@@ -193,8 +226,12 @@ public class BackgroundService extends JobService {
             if (befrestHandlerThread != null)
                 befrestHandlerThread.join(1000);
         } catch (InterruptedException e) {
+//            BefrestImpl.sendCrash(e.getCause().getMessage(), getApplicationContext());
             e.printStackTrace();
         }
+
+   /*     if (befrestActual.isBefrestStarted)
+            befrestProxy.setStartServiceAlarm();*/
         mConnection = null;
         befrestHandlerThread = null;
         Log.d(TAG, "PushService==================onDestroy()_END====================");
@@ -204,9 +241,10 @@ public class BackgroundService extends JobService {
     @SuppressLint("LongLogTag")
     @Override
     public boolean onStopJob(JobParameters params) {
-        Log.w(TAG, "onStopJob: ");
-        mainThreadHandler.removeCallbacks(finishJobSuccessfully);
-        return true;
+        BefLog.w(TAG, "onStopJob: ");
+        saveIntoFile("onStartJob");
+        mainThreadHandler.removeCallbacks(jobFinishSuccessfully);
+        return false;
     }
 
     Comparator<BefrestMessage> comparator = new Comparator<BefrestMessage>() {

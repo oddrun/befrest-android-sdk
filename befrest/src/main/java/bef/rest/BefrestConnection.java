@@ -21,7 +21,6 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -46,7 +45,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Objects;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -54,7 +52,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import static bef.rest.BefrestPrefrences.PREF_FCM_TOKEN;
-import static bef.rest.BefrestPrefrences.PREF_LAST_STATE;
+import static bef.rest.BefrestPrefrences.PREF_SERVICE_CHOOSER;
 import static bef.rest.BefrestPrefrences.getPrefs;
 
 class BefrestConnection extends Handler {
@@ -141,7 +139,7 @@ class BefrestConnection extends Handler {
         if (!isValid) return;
         cancelUpcommingRestart();
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+        if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
             setNextPingToSendInFuture();
         notifyConnectionRefreshedIfNeeded();
     }
@@ -170,7 +168,7 @@ class BefrestConnection extends Handler {
         if (restartInProgress || System.currentTimeMillis() - lastPingSetTime < getPingInterval() / 2)
             return;
         prevSuccessfulPings++;
-        if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+        if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
             setNextPingToSendInFuture();
         BefLog.i(TAG, "BefrestImpl Pinging Revised");
     }
@@ -187,7 +185,7 @@ class BefrestConnection extends Handler {
     }
 
 
-    public BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
+    BefrestConnection(Context context, Looper looper, WebSocket.ConnectionHandler wsHandler, String url, List<NameValuePair> headers) {
         super(looper);
         this.mLooper = looper;
         this.mWsHandler = wsHandler;
@@ -204,20 +202,21 @@ class BefrestConnection extends Handler {
     private void setupFireBase() {
         try {
             FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
-                @RequiresApi(api = Build.VERSION_CODES.KITKAT)
                 @Override
                 public void onComplete(@NonNull Task<InstanceIdResult> task) {
                     if (!task.isSuccessful()) {
                         BefLog.i(TAG, "FCM Token Does Not Received ");
                         return;
                     }
-                    BefLog.i(TAG, "FCM Token Received : " + Objects.requireNonNull(task.getResult()).getToken());
+                 /*
+                   pass NewFCMtoken and PrevFCMtoken to sendFCMToken Function
+                  */
+                    BefLog.i(TAG, task.getResult().getToken());
                     sendFCMToken(BefrestPrefrences.getPrefs(appContext).getString(PREF_FCM_TOKEN, null), task.getResult().getToken());
-                    BefrestImpl.canFcmSetup = true;
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 
@@ -390,7 +389,7 @@ class BefrestConnection extends Handler {
                 postDelayed(releaseConnectWakeLock, 2000);
                 notifyConnectionRefreshedIfNeeded();
                 prevSuccessfulPings = 0;
-                if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null)
+                if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null)
                     setNextPingToSendInFuture();
 
             } else {
@@ -433,22 +432,18 @@ class BefrestConnection extends Handler {
     private void handleBefrestEvent(BefrestEvent e) {
         switch (e.type) {
             case CONNECT:
-                setupPortAndScheme("wss", 443);
                 connect();
                 checkGooglePlayService(appContext);
                 break;
             case DISCONNECT:
                 disconnect();
                 break;
-            case RETRY:
-                setupPortAndScheme("ws", 80);
-                connect();
             case STOP:
                 mLooper.quit();
                 break;
             case REFRESH: {
-                BefLog.i(TAG, "handleBefrestEvent: " + getPrefs(appContext).getString(PREF_LAST_STATE, null));
-                if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
+                BefLog.i(TAG, "handleBefrestEvent: " + getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null));
+                if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null) {
                     BefLog.i(TAG, "handleBefrestEvent: ");
                     refresh();
                 }
@@ -463,7 +458,7 @@ class BefrestConnection extends Handler {
     /**
      * check IsDeviceSupportGooglePlayService or Not
      *
-     * @return status if available or not
+     * @return status if availabe or not
      */
     private boolean checkGooglePlayService(Context appContext) {
         try {
@@ -493,7 +488,7 @@ class BefrestConnection extends Handler {
 //            prevSuccessfulPings = 0; seems illogical
             cancelFuturePing();
             cancelUpcommingRestart();
-            if (getPrefs(appContext).getString(PREF_LAST_STATE, null) == null) {
+            if (getPrefs(appContext).getString(PREF_SERVICE_CHOOSER, null) == null) {
                 setNextPingToSendInFuture(0);
             }
 
