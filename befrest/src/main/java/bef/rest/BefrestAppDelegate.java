@@ -2,7 +2,7 @@ package bef.rest;
 
 public interface BefrestAppDelegate {
 
-    void appOnforeground();
+    void onAppForeGrounded();
 
-    void apponBackground();
+    void onAppBackground();
 }
