@@ -3,7 +3,7 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'digital.wup.android-maven-publish'
 
 def packageName = 'bef.rest'
-def libraryVersion = '1.0.1'
+def libraryVersion = '3.0.0'
 
 android {
     compileSdkVersion 28
@@ -26,7 +26,7 @@ android {
 
 }
 
-version = '1.0.0'
+version = '3.0.0'
 
 task jar(type: Jar, dependsOn: 'assembleRelease') {
     from fileTree(dir: 'build/intermediates/classes/release')
@@ -39,12 +39,6 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-    implementation "com.squareup.retrofit2:retrofit:2.0.0"
-    implementation "com.squareup.retrofit2:converter-gson:2.0.0"
-    implementation "com.squareup.okhttp3:okhttp:3.0.1"
-    implementation "com.squareup.okhttp3:okhttp-urlconnection:3.0.1"
-    implementation "com.squareup.okhttp3:logging-interceptor:3.4.1"
-
 }
 
 publishing {
