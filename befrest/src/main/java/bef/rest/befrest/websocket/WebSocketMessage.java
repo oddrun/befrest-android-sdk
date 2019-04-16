@@ -1,3 +1,9 @@
+package bef.rest.befrest.websocket;
+
+import java.util.List;
+
+import bef.rest.befrest.utils.NameValuePair;
+
 /******************************************************************************
  * Copyright 2015-2016 Befrest
  * <p/>
@@ -13,15 +19,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-
-
-package bef.rest.befrest.websocket;
-
-import java.util.List;
-
-import bef.rest.befrest.utils.NameValuePair;
-
-
 public class WebSocketMessage {
 
    public static class Message {
@@ -29,18 +26,18 @@ public class WebSocketMessage {
       int senderId;
    }
 
-   public static class Quit extends Message {
+   static class Quit extends Message {
    }
 
 
-   public static class ClientHandshake extends Message {
+   static class ClientHandshake extends Message {
 
-      public String mHost;
-      public String mPath;
-      public String mQuery;
-      public String mOrigin;
-      public String[] mSubprotocols;
-      public List<NameValuePair> mHeaderList;
+      String mHost;
+      String mPath;
+      String mQuery;
+      String mOrigin;
+      String[] mSubprotocols;
+      List<NameValuePair> mHeaderList;
 
       ClientHandshake(String host) {
          mHost = host;
@@ -60,15 +57,15 @@ public class WebSocketMessage {
    }
 
    public static class ServerHandshake extends Message {
-	   public boolean mSuccess;
+	   boolean mSuccess;
 	   
-	   public ServerHandshake(boolean success) {
+	   ServerHandshake(boolean success) {
 		   mSuccess = success;
 	   }
    }
 
    public static class ConnectionLost extends Message {
-      public ConnectionLost() {
+      ConnectionLost() {
       }
    }
    
@@ -76,7 +73,7 @@ public class WebSocketMessage {
 	   public int mStatusCode;
 	   public String mStatusMessage;
 	   
-	   public ServerError(int statusCode, String statusMessage) {
+	   ServerError(int statusCode, String statusMessage) {
 		   mStatusCode = statusCode;
 		   mStatusMessage = statusMessage;
 	   }
@@ -85,9 +82,9 @@ public class WebSocketMessage {
 
    public static class ProtocolViolation extends Message {
 
-      public WebSocketException mException;
+      WebSocketException mException;
 
-      public ProtocolViolation(WebSocketException e) {
+      ProtocolViolation(WebSocketException e) {
          mException = e;
       }
    }
@@ -95,7 +92,7 @@ public class WebSocketMessage {
    /// An exception occured in the WS reader or WS writer.
    public static class Error extends Message {
 
-      public Exception mException;
+      Exception mException;
 
       public Error(Exception e) {
          mException = e;
@@ -106,23 +103,23 @@ public class WebSocketMessage {
 
       public String mPayload;
 
-      public TextMessage(String payload) {
+      TextMessage(String payload) {
          mPayload = payload;
       }
    }
 
-   public static class RawTextMessage extends Message {
+   static class RawTextMessage extends Message {
 
-      public byte[] mPayload;
+      byte[] mPayload;
 
       RawTextMessage(byte[] payload) {
          mPayload = payload;
       }
    }
 
-   public static class BinaryMessage extends Message {
+   static class BinaryMessage extends Message {
 
-      public byte[] mPayload;
+      byte[] mPayload;
 
       BinaryMessage(byte[] payload) {
          mPayload = payload;
@@ -134,16 +131,6 @@ public class WebSocketMessage {
       public int mCode;
       public String mReason;
 
-      Close() {
-         mCode = -1;
-         mReason = null;
-      }
-
-      Close(int code) {
-         mCode = code;
-         mReason = null;
-      }
-
       Close(int code, String reason) {
          mCode = code;
          mReason = reason;
@@ -153,11 +140,7 @@ public class WebSocketMessage {
    /// WebSockets ping to send or received.
    public static class Ping extends Message {
 
-      public byte[] mPayload;
-
-      Ping() {
-         mPayload = null;
-      }
+      byte[] mPayload;
 
       public Ping(byte[] payload) {
          mPayload = payload;
@@ -169,9 +152,6 @@ public class WebSocketMessage {
 
       public byte[] mPayload;
 
-      Pong() {
-         mPayload = null;
-      }
 
       Pong(byte[] payload) {
          mPayload = payload;
