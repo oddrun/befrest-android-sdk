@@ -1,4 +1,4 @@
-/******************************************************************************
+/*
  * Copyright 2015-2016 Befrest
  * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,8 @@
 
 package bef.rest.befrest.websocket;
 
-import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.util.Pair;
 
 import java.io.BufferedInputStream;
@@ -29,19 +27,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.net.ssl.SSLException;
-
-import bef.rest.befrest.utils.NoCopyByteArrayOutputStream;
 import bef.rest.befrest.utils.Utf8Validator;
 
 
 /**
- * WebSocket reader, the receiving leg of a WebSockets connection.
+ * SocketCallBacks reader, the receiving leg of a WebSockets connection.
  * This runs on it's own background thread and posts messages to master
  * thread's message queue for there to be consumed by the application.
  * The only method that needs to be called (from foreground thread) is quit(),
@@ -80,35 +72,30 @@ class WebSocketReader extends Thread {
      * WebSockets frame metadata.
      */
     private static class FrameHeader {
-        public int mOpcode;
-        public boolean mFin;
-        public int mReserved;
-        public int mHeaderLen;
-        public int mPayloadLen;
-        public int mTotalLen;
-        public byte[] mMask;
+        int mOpcode;
+        boolean mFin;
+        int mReserved;
+        int mHeaderLen;
+        int mPayloadLen;
+        int mTotalLen;
+        byte[] mMask;
     }
 
 
     /**
      * Create new WebSockets background reader.
-     *
      * @param master The message handler of master (foreground thread).
      * @param socket The socket channel created on foreground thread.
      */
-    public WebSocketReader(Handler master, Socket socket, WebSocketOptions options, String threadName)
+    WebSocketReader(Handler master, Socket socket, WebSocketOptions options, String threadName)
             throws IOException {
-
         super(threadName);
-
         mMaster = master;
         mOptions = options;
         mSocket = socket;
-
         mMessageData = new byte[mOptions.getMaxFramePayloadSize() + 14];
         mBufferedStream = new BufferedInputStream(mSocket.getInputStream(), mOptions.getMaxFramePayloadSize() + 14);
         mMessagePayload = new ByteArrayOutputStream(options.getMaxMessagePayloadSize());
-
         mFrameHeader = null;
         mState = STATE_CONNECTING;
 
@@ -121,7 +108,7 @@ class WebSocketReader extends Thread {
     /**
      * Graceful shutdown of background reader thread (called from master).
      */
-    public void quit() {
+    void quit() {
         mState = STATE_CLOSED;
     }
 
@@ -129,11 +116,9 @@ class WebSocketReader extends Thread {
     /**
      * Notify the master (foreground thread) of WebSockets message received
      * and unwrapped.
-     *
      * @param message Message to send to master.
      */
-    protected void notify(Object message) {
-
+    private void notify(Object message) {
         Message msg = mMaster.obtainMessage();
         msg.obj = message;
         mMaster.sendMessage(msg);
@@ -146,7 +131,6 @@ class WebSocketReader extends Thread {
 
         // outside frame?
         if (mFrameHeader == null) {
-
             // need at least 2 bytes from WS frame header to start processing
             if (mPosition >= 2) {
 
@@ -158,18 +142,14 @@ class WebSocketReader extends Thread {
                 byte b1 = mMessageData[1];
                 boolean masked = (b1 & 0x80) != 0;
                 int payload_len1 = b1 & 0x7f;
-
                 // now check protocol compliance
-
                 if (rsv != 0) {
                     throw new WebSocketException("RSV != 0 and no extension negotiated");
                 }
-
                 if (masked) {
                     // currently, we don't allow this. need to see whats the final spec.
                     throw new WebSocketException("masked server frame");
                 }
-
                 if (opcode > 7) {
                     // control frame
                     if (!fin) {
@@ -197,18 +177,15 @@ class WebSocketReader extends Thread {
                     }
                 }
 
-                int mask_len = masked ? 4 : 0;
+                int mask_len = 0;
                 int header_len;
 
                 if (payload_len1 < 126) {
                     header_len = 2 + mask_len;
                 } else if (payload_len1 == 126) {
                     header_len = 2 + 2 + mask_len;
-                } else if (payload_len1 == 127) {
-                    header_len = 2 + 8 + mask_len;
                 } else {
-                    // should not arrive here
-                    throw new Exception("logic error");
+                    header_len = 2 + 8 + mask_len;
                 }
 
                 // continue when complete frame header is available
@@ -222,7 +199,6 @@ class WebSocketReader extends Thread {
                         if (payload_len < 126) {
                             throw new WebSocketException("invalid data frame length (not using minimal length encoding)");
                         }
-                        i += 2;
                     } else if (payload_len1 == 127) {
                         if ((0x80 & mMessageData[i]) != 0) {
                             throw new WebSocketException("invalid data frame length (> 2^63)");
@@ -238,7 +214,6 @@ class WebSocketReader extends Thread {
                         if (payload_len < 65536) {
                             throw new WebSocketException("invalid data frame length (not using minimal length encoding)");
                         }
-                        i += 8;
                     } else {
                         payload_len = payload_len1;
                     }
@@ -256,15 +231,7 @@ class WebSocketReader extends Thread {
                     mFrameHeader.mPayloadLen = (int) payload_len;
                     mFrameHeader.mHeaderLen = header_len;
                     mFrameHeader.mTotalLen = mFrameHeader.mHeaderLen + mFrameHeader.mPayloadLen;
-                    if (masked) {
-                        mFrameHeader.mMask = new byte[4];
-                        for (int j = 0; j < 4; ++j) {
-                            mFrameHeader.mMask[i] = (byte) (0xff & mMessageData[i + j]);
-                        }
-                        i += 4;
-                    } else {
-                        mFrameHeader.mMask = null;
-                    }
+                    mFrameHeader.mMask = null;
 
                     // continue processing when payload empty or completely buffered
                     return mFrameHeader.mPayloadLen == 0 || mPosition >= mFrameHeader.mTotalLen;
@@ -281,7 +248,6 @@ class WebSocketReader extends Thread {
             }
 
         } else {
-            Log.i("BEFRESTAPP", "processData: ");
             /// \todo refactor this for streaming processing, incl. fail fast on invalid UTF-8 within frame already
 
             // within frame
@@ -307,12 +273,9 @@ class WebSocketReader extends Thread {
 
                         if (mFrameHeader.mPayloadLen >= 2) {
 
-                            // parse and check close code - see http://tools.ietf.org/html/rfc6455#section-7.4
+                            assert framePayload != null;
                             code = (framePayload[0] & 0xff) * 256 + (framePayload[1] & 0xff);
-                            if (code < 1000
-                                    || (code >= 1000 && code <= 2999 &&
-                                    code != 1000 && code != 1001 && code != 1002 && code != 1003 && code != 1007 && code != 1008 && code != 1009 && code != 1010 && code != 1011)
-                                    || code >= 5000) {
+                            if (code < 1000 || code <= 2999 && code != 1000 && code != 1001 && code != 1002 && code != 1003 && code != 1007 && code != 1008 && code != 1009 && code != 1010 && code != 1011 || code >= 5000) {
 
                                 throw new WebSocketException("invalid close code " + code);
                             }
@@ -442,7 +405,7 @@ class WebSocketReader extends Thread {
      *
      * @param success Success handshake flag
      */
-    protected void onHandshake(Map<String, String> handshakeParams, boolean success) {
+    private void onHandshake(boolean success) {
 
         notify(new WebSocketMessage.ServerHandshake(success));
     }
@@ -451,7 +414,7 @@ class WebSocketReader extends Thread {
     /**
      * WebSockets close received, default notifies master.
      */
-    protected void onClose(int code, String reason) {
+    private void onClose(int code, String reason) {
 
         notify(new WebSocketMessage.Close(code, reason));
     }
@@ -462,7 +425,7 @@ class WebSocketReader extends Thread {
      *
      * @param payload Ping payload or null.
      */
-    protected void onPing(byte[] payload) {
+    private void onPing(byte[] payload) {
 
         notify(new WebSocketMessage.Ping(payload));
     }
@@ -473,7 +436,7 @@ class WebSocketReader extends Thread {
      *
      * @param payload Pong payload or null.
      */
-    protected void onPong(byte[] payload) {
+    private void onPong(byte[] payload) {
 
         notify(new WebSocketMessage.Pong(payload));
     }
@@ -487,8 +450,7 @@ class WebSocketReader extends Thread {
      * @param payload Text message payload as Java String decoded
      *                from raw UTF-8 payload or null (empty payload).
      */
-    protected void onTextMessage(String payload) {
-        Log.i("BEFRESTAPP", "onTextMessage: ");
+    private void onTextMessage(String payload) {
         notify(new WebSocketMessage.TextMessage(payload));
     }
 
@@ -501,7 +463,7 @@ class WebSocketReader extends Thread {
      * @param payload Text message payload as raw UTF-8 octets or
      *                null (empty payload).
      */
-    protected void onRawTextMessage(byte[] payload) {
+    private void onRawTextMessage(byte[] payload) {
 
         notify(new WebSocketMessage.RawTextMessage(payload));
     }
@@ -512,7 +474,7 @@ class WebSocketReader extends Thread {
      *
      * @param payload Binary message payload or null (empty payload).
      */
-    protected void onBinaryMessage(byte[] payload) {
+    private void onBinaryMessage(byte[] payload) {
 
         notify(new WebSocketMessage.BinaryMessage(payload));
     }
@@ -540,9 +502,6 @@ class WebSocketReader extends Thread {
                     }
                 }
 
-                /// \FIXME verify handshake from server
-                Map<String, String> handshakeParams = parseHttpHeaders(Arrays.copyOfRange(headers, 1, headers.length));
-
                 mMessageData = Arrays.copyOfRange(mMessageData, pos + 4, mMessageData.length + pos + 4);
                 mPosition -= pos + 4;
 
@@ -557,28 +516,14 @@ class WebSocketReader extends Thread {
                     mStopped = true;
                 }
 
-                onHandshake(handshakeParams, !serverError);
+                onHandshake(!serverError);
                 break;
             }
         }
         return res;
     }
 
-    private Map<String, String> parseHttpHeaders(String[] httpResponse) throws UnsupportedEncodingException {
-        Map<String, String> headers = new HashMap<>();
-        for (String line : httpResponse) {
-            if (line.length() > 0) {
-                String[] h = line.split(": ");
-                if (h.length == 2) {
-                    headers.put(h[0], h[1]);
-                }
-            }
-        }
-
-        return headers;
-    }
-
-    private Pair<Integer, String> parseHttpStatus(String statusLine) throws UnsupportedEncodingException {
+    private Pair<Integer, String> parseHttpStatus(String statusLine) {
         String[] statusLineParts = statusLine.split(" ");
         int statusCode = Integer.valueOf(statusLineParts[1]);
         StringBuilder statusMessageBuilder = new StringBuilder();
@@ -611,7 +556,6 @@ class WebSocketReader extends Thread {
             // should not arrive here
             return false;
         }
-
     }
 
 
