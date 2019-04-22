@@ -164,6 +164,10 @@ public class Befrest implements BefrestAppDelegate {
         return this;
     }
 
+    public void clearTopic() {
+        ClientData.getInstance().clearTopic();
+    }
+
     public void refresh() {
         startService(REFRESH);
     }

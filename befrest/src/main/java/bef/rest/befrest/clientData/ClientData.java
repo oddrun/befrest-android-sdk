@@ -105,5 +105,10 @@ public class ClientData {
         BefrestLog.i(TAG, "updatedTopic: is " + this.topics);
     }
 
+    public void clearTopic() {
+        this.topics = "";
+        saveString(PREF_TOPICS, this.topics);
+        BefrestLog.i(TAG, "updatedTopic: is " + this.topics);
+    }
 
 }
