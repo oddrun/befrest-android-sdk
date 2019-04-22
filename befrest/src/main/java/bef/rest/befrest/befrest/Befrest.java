@@ -126,9 +126,7 @@ public class Befrest implements BefrestAppDelegate {
         for (String s : topicToAdd) {
             if (currentTopics.contains(s)) {
                 BefrestLog.w(TAG, "Topic : " + s + " has already exist");
-                return this;
-            }
-            ClientData.getInstance().setTopics(s);
+            } else ClientData.getInstance().setTopics(s);
         }
         return this;
     }
@@ -295,5 +293,9 @@ public class Befrest implements BefrestAppDelegate {
 
     public void setAppInForeground(boolean appInForeground) {
         isAppInForeground = appInForeground;
+    }
+
+    public String[] getTopics() {
+        return ClientData.getInstance().getTopics().split("-");
     }
 }
