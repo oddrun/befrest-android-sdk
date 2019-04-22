@@ -17,6 +17,7 @@ import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.BefrestLog;
+import bef.rest.befrest.utils.JobServiceManager;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.websocket.SocketCallBacks;
 
@@ -196,22 +197,27 @@ public class PushService extends Service implements SocketCallBacks {
 
     @Override
     public void onDestroy() {
-        BefrestLog.w(TAG, "onDestroy  Start");
+        BefrestLog.w(TAG, "------------------------onDestroy  Start------------------------");
         cancelRetryMode();
         try {
             connectionManager.forward(BefrestEvent.DISCONNECT);
             connectionManager.forward(BefrestEvent.STOP);
-            befrestHandler.join(1000);
             befrestHandler.quit();
+            befrestHandler.join();
             befrestHandler = null;
-            messageHandlerThread.join(1000);
             messageHandlerThread.quit();
+            messageHandlerThread.join();
             messageHandlerThread = null;
+            if (Befrest.getInstance().isWantToStart()) {
+                if (SDK_INT >= OREO_SDK_INT) {
+                    JobServiceManager.getInstance().scheduleJob();
+                }
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         connectionManager = null;
-        BefrestLog.w(TAG, "onDestroy: Finish");
+        BefrestLog.w(TAG, "------------------------onDestroy: Finish------------------------");
         super.onDestroy();
     }
 
