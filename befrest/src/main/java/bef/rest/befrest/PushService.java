@@ -23,6 +23,15 @@ import bef.rest.befrest.websocket.SocketCallBacks;
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTION_CHANGED;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CANNOT_CONNECT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_LOST;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_NOT_RESPONDING;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_HANDSHAKE_TIME_OUT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_INTERNAL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_NORMAL;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.CONNECTION_REFRESHED;
 import static bef.rest.befrest.utils.SDKConst.KEY_MESSAGE_PASSED;
@@ -42,15 +51,6 @@ import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 import static bef.rest.befrest.utils.Util.getIntentEvent;
 import static bef.rest.befrest.utils.Util.getNextReconnectInterval;
 import static bef.rest.befrest.utils.Util.getSendOnAuthorizeBroadcastDelay;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CANNOT_CONNECT;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CONNECTION_LOST;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CONNECTION_NOT_RESPONDING;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_HANDSHAKE_TIME_OUT;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_INTERNAL_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_NORMAL;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_PROTOCOL_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_SERVER_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_UNAUTHORIZED;
 
 
 public class PushService extends Service implements SocketCallBacks {

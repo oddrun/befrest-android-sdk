@@ -20,22 +20,22 @@ import bef.rest.befrest.websocket.SocketHelper;
 import bef.rest.befrest.websocket.WebSocketMessage;
 
 import static bef.rest.befrest.utils.BefrestPreferences.getRunningService;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CANNOT_CONNECT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_LOST;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_NOT_RESPONDING;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_HANDSHAKE_TIME_OUT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_INTERNAL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_NORMAL;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
+import static bef.rest.befrest.utils.SDKConst.HANDSHAKE_TIMEOUT_MESSAGE;
 import static bef.rest.befrest.utils.SDKConst.PING;
 import static bef.rest.befrest.utils.SDKConst.PING_DATA_PREFIX;
 import static bef.rest.befrest.utils.SDKConst.PING_INTERVAL;
 import static bef.rest.befrest.utils.SDKConst.PING_TIMEOUT;
+import static bef.rest.befrest.utils.SDKConst.PING_TIME_OUT_MESSAGE;
 import static bef.rest.befrest.utils.Util.acquireConnectWakeLockIfPossible;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CANNOT_CONNECT;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CONNECTION_LOST;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_CONNECTION_NOT_RESPONDING;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_HANDSHAKE_TIME_OUT;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_INTERNAL_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_NORMAL;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_PROTOCOL_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_SERVER_ERROR;
-import static bef.rest.befrest.utils.WebSocketConst.CLOSE_UNAUTHORIZED;
-import static bef.rest.befrest.utils.WebSocketConst.HANDSHAKE_TIMEOUT_MESSAGE;
-import static bef.rest.befrest.utils.WebSocketConst.PING_TIME_OUT_MESSAGE;
 
 public class ConnectionManager extends Handler {
     private String TAG = ConnectionManager.class.getSimpleName();
