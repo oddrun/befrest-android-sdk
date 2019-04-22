@@ -2,18 +2,15 @@ package bef.rest.befrest.befrest;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
-import android.app.Application;
 import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.os.HandlerThread;
 import android.support.annotation.RequiresApi;
 
 import java.util.Arrays;
 import java.util.List;
 
-import bef.rest.befrest.ApplicationStateThread;
 import bef.rest.befrest.PushService;
 import bef.rest.befrest.clientData.ClientData;
 import bef.rest.befrest.utils.BefrestLog;
@@ -27,10 +24,9 @@ import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.OREO_SDK_INT;
 import static bef.rest.befrest.utils.SDKConst.REFRESH;
 import static bef.rest.befrest.utils.SDKConst.SDK_INT;
-import static bef.rest.befrest.utils.Util.isAppOnForeground;
 
 @SuppressWarnings({"UnusedReturnValue", "unused"})
-public class Befrest implements BefrestAppDelegate {
+public class Befrest {
     private static final String TAG = "Befrest";
     private Context context;
     private Class<?> pushService;
@@ -38,10 +34,7 @@ public class Befrest implements BefrestAppDelegate {
     private JobScheduler jobScheduler;
     private boolean isAppInForeground;
     private boolean wantToStart;
-    private HandlerThread handlerThread;
-    private BefrestAppLifeCycle befrestAppLifeCycle;
     private BefrestContract befrestContract;
-    private ApplicationStateThread ap;
 
     private static class Loader {
         @SuppressLint("StaticFieldLeak")
@@ -64,22 +57,10 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     public Befrest start() {
-        watchAppLifeCycle();
         befrestContract.registerBroadcastReceiver();
         wantToStart = true;
         startBefrest();
         return this;
-    }
-
-    private void watchAppLifeCycle() {
-        BefrestLog.i(TAG, "init App Life Cycle");
-        handlerThread = new HandlerThread("Application State");
-        handlerThread.start();
-        ap = new ApplicationStateThread(handlerThread.getLooper(), this);
-        ap.forward(true);
-        befrestAppLifeCycle = new BefrestAppLifeCycle(this);
-        context.registerComponentCallbacks(befrestAppLifeCycle);
-        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
     }
 
     /**
@@ -124,9 +105,15 @@ public class Befrest implements BefrestAppDelegate {
         String t = ClientData.getInstance().getTopics();
         List<String> currentTopics = Arrays.asList(t.split("-"));
         for (String s : topicToAdd) {
+            if (s == null || s.length() < 1 || !s.matches("[A-Za-z0-9]+")) {
+                BefrestLog.w(TAG, "Topic Name Should be AlphaNumeric");
+                continue;
+            }
             if (currentTopics.contains(s)) {
                 BefrestLog.w(TAG, "Topic : " + s + " has already exist");
-            } else ClientData.getInstance().setTopics(s);
+                continue;
+            }
+            ClientData.getInstance().setTopics(s);
         }
         return this;
     }
@@ -177,14 +164,6 @@ public class Befrest implements BefrestAppDelegate {
      */
     public void stop() {
         befrestContract.unRegisterBroadCastReceiver();
-        ap.forward(true);
-        (context).unregisterComponentCallbacks(befrestAppLifeCycle);
-        try {
-            handlerThread.join(1000);
-            handlerThread.quit();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         if (isMyServiceRunning(pushService)) {
             wantToStart = false;
             stopBefrest();
@@ -206,21 +185,16 @@ public class Befrest implements BefrestAppDelegate {
 
     public void startService(String event) {
         try {
-            isAppInForeground = isAppOnForeground();
-            if (isAppInForeground || SDK_INT < OREO_SDK_INT) {
-                BefrestLog.i(TAG, "Start Service : with event " + event);
-                setRunningService(true);
-                Intent intent = new Intent(context, pushService);
-                intent.putExtra(event, true);
-                context.startService(intent);
-                isBefrestStart = true;
-            } else {
-                BefrestLog.e(TAG, "Application is in Background and service can't Start");
-                stopBefrest();
+            BefrestLog.i(TAG, "Start Service : with event " + event);
+            setRunningService(true);
+            Intent intent = new Intent(context, pushService);
+            intent.putExtra(event, true);
+            context.startService(intent);
+            isBefrestStart = true;
+        } catch (IllegalStateException e) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                setupJobScheduler();
             }
-
-        } catch (Exception ignored) {
-
         }
     }
 
@@ -234,23 +208,6 @@ public class Befrest implements BefrestAppDelegate {
         return false;
     }
 
-    @Override
-    public void onAppForeground() {
-        BefrestLog.d(TAG, "Application Is In Foreground");
-        isAppInForeground = true;
-        if (wantToStart)
-            startBefrest();
-    }
-
-    @Override
-    public void onAppBackground() {
-        isAppInForeground = false;
-        BefrestLog.d(TAG, "Application is in Background");
-        if (SDK_INT >= OREO_SDK_INT) {
-            stopBefrest();
-        }
-    }
-
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void setupJobScheduler() {
         JobServiceManager.getInstance().scheduleJob();
@@ -261,9 +218,7 @@ public class Befrest implements BefrestAppDelegate {
         Intent intent = new Intent(context, pushService);
         context.stopService(intent);
         isBefrestStart = false;
-        BefrestLog.d(TAG, "want to Start is " + wantToStart + " Api Level is : " + SDK_INT);
-        if (wantToStart && SDK_INT > OREO_SDK_INT)
-            setupJobScheduler();
+        BefrestLog.d(TAG, "want to Start is " + wantToStart + " , Api Level is : " + SDK_INT);
     }
 
     public void setLogLevel(int logLevel) {
@@ -301,5 +256,9 @@ public class Befrest implements BefrestAppDelegate {
 
     public String[] getTopics() {
         return ClientData.getInstance().getTopics().split("-");
+    }
+
+    public boolean isWantToStart() {
+        return wantToStart;
     }
 }
