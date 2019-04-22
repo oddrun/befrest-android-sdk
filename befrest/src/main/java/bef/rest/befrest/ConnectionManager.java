@@ -6,7 +6,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 
 import bef.rest.befrest.befrest.Befrest;
@@ -14,6 +13,7 @@ import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.MessageIdPersister;
+import bef.rest.befrest.utils.UrlConnection;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.websocket.SocketCallBacks;
 import bef.rest.befrest.websocket.SocketHelper;
@@ -188,7 +188,7 @@ public class ConnectionManager extends Handler {
     }
 
     private void HandleBefrestEvent(BefrestEvent message) {
-        BefrestLog.v(TAG, "Handle Event :" + message + "  ");
+        BefrestLog.v(TAG, "Handle Event :" + message);
         switch (message) {
             case CONNECT:
                 connectToServer();
@@ -270,7 +270,13 @@ public class ConnectionManager extends Handler {
             } else {
                 BefrestLog.w(TAG, "Befrest is Already Connect To Socket");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
+            if (e.getClass().getSimpleName().contains("SSL")
+                    || e.getClass().getSimpleName().contains("SocketTimeoutException")) {
+                BefrestLog.i(TAG, "Switch to ws and port 80");
+                UrlConnection.getInstance().setmWsScheme("ws");
+                UrlConnection.getInstance().setmWsPort(80);
+            }
             disconnectAndNotify();
             e.printStackTrace();
         }

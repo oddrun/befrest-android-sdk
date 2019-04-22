@@ -85,6 +85,14 @@ public class UrlConnection {
         return mWsPort;
     }
 
+    public void setmWsScheme(String mWsScheme) {
+        this.mWsScheme = mWsScheme;
+    }
+
+    public void setmWsPort(int mWsPort) {
+        this.mWsPort = mWsPort;
+    }
+
     public String getmWsPath() {
         return mWsPath;
     }

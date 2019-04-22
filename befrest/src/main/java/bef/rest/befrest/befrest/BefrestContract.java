@@ -44,15 +44,23 @@ public class BefrestContract {
 
 
     void registerBroadcastReceiver() {
-        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        Befrest.getInstance().getContext().registerReceiver(befrestConnectivityChangeReceiver, filter);
+        try {
+            IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+            filter.addAction(Intent.ACTION_SCREEN_ON);
+            filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            Befrest.getInstance().getContext().registerReceiver(befrestConnectivityChangeReceiver, filter);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
     void unRegisterBroadCastReceiver() {
-        Befrest.getInstance().getContext().unregisterReceiver(befrestConnectivityChangeReceiver);
+        try {
+            Befrest.getInstance().getContext().unregisterReceiver(befrestConnectivityChangeReceiver);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
