@@ -39,6 +39,7 @@ import bef.rest.befrest.utils.Utf8Validator;
  * The only method that needs to be called (from foreground thread) is quit(),
  * which gracefully shuts down the background receiver thread.
  */
+@SuppressWarnings("CharsetObjectCanBeUsed")
 class WebSocketReader extends Thread {
 
     private final Handler mMaster;
@@ -57,7 +58,7 @@ class WebSocketReader extends Thread {
 
     private boolean mStopped = false;
     private int mState;
-    private long mLastReadTime;
+
 
     private boolean mInsideMessage = false;
     private int mMessageOpcode;
@@ -99,10 +100,6 @@ class WebSocketReader extends Thread {
         mFrameHeader = null;
         mState = STATE_CONNECTING;
 
-    }
-
-    double getTimeSinceLastRead() {
-        return (System.currentTimeMillis() - mLastReadTime) / 1000.0;
     }
 
     /**
@@ -288,7 +285,7 @@ class WebSocketReader extends Thread {
 
                                 Utf8Validator val = new Utf8Validator();
                                 val.validate(ra);
-                                if (!val.isValid()) {
+                                if (val.isInvalid()) {
                                     throw new WebSocketException("invalid close reasons (not UTF-8)");
                                 } else {
                                     reason = new String(ra, "UTF-8");
@@ -351,7 +348,7 @@ class WebSocketReader extends Thread {
                         if (mMessageOpcode == 1) {
 
                             // verify that UTF-8 ends on codepoint
-                            if (mOptions.getValidateIncomingUtf8() && !mUtf8Validator.isValid()) {
+                            if (mOptions.getValidateIncomingUtf8() && mUtf8Validator.isInvalid()) {
                                 throw new WebSocketException("UTF-8 text message payload ended within Unicode code point");
                             }
 
@@ -506,6 +503,7 @@ class WebSocketReader extends Thread {
                 mPosition -= pos + 4;
 
                 if (!serverError) {
+
                     // process further when data after HTTP headers left in buffer
                     res = mPosition > 0;
 
@@ -572,7 +570,6 @@ class WebSocketReader extends Thread {
                 mPosition += len;
                 if (len > 0) {
 
-                    mLastReadTime = System.currentTimeMillis();
                     // process buffered data
                     while (consumeData()) {
 

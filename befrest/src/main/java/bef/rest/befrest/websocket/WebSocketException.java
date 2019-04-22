@@ -1,3 +1,4 @@
+package bef.rest.befrest.websocket;
 /******************************************************************************
  * Copyright 2015-2016 Befrest
  * <p/>
@@ -13,9 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-
-
-package bef.rest.befrest.websocket;
 
 class WebSocketException extends Exception {
 

@@ -23,7 +23,6 @@ public class WebSocketMessage {
 
    public static class Message {
 
-      int senderId;
    }
 
    static class Quit extends Message {
@@ -36,14 +35,14 @@ public class WebSocketMessage {
       String mPath;
       String mQuery;
       String mOrigin;
-      String[] mSubprotocols;
+      String[] mSubProtocols;
       List<NameValuePair> mHeaderList;
 
       ClientHandshake(String host) {
          mHost = host;
          mPath = "/";
          mOrigin = null;
-         mSubprotocols = null;
+         mSubProtocols = null;
          mHeaderList = null;
       }
    }
@@ -89,7 +88,7 @@ public class WebSocketMessage {
       }
    }
 
-   /// An exception occured in the WS reader or WS writer.
+   /// An exception occurred in the WS reader or WS writer.
    public static class Error extends Message {
 
       Exception mException;

@@ -160,12 +160,12 @@ class WebSocketWriter extends Handler {
         write(CRLF);
         write("Host: " + message.mHost);
         write(CRLF);
-        write("Upgrade: SocketCallBacks");
+        write("Upgrade: websocket");
         write(CRLF);
         write("Connection: Upgrade");
         write(CRLF);
 
-        write("Sec-SocketCallBacks-Key: " + newHandshakeKey());
+        write("Sec-WebSocket-Key: " + newHandshakeKey());
         write(CRLF);
 
         if (message.mOrigin != null && !message.mOrigin.equals("")) {
@@ -173,18 +173,18 @@ class WebSocketWriter extends Handler {
             write(CRLF);
         }
 
-        if (message.mSubprotocols != null && message.mSubprotocols.length > 0) {
-            write("Sec-SocketCallBacks-Protocol: ");
-            for (int i = 0; i < message.mSubprotocols.length; ++i) {
-                write(message.mSubprotocols[i]);
-                if (i != message.mSubprotocols.length - 1) {
+        if (message.mSubProtocols != null && message.mSubProtocols.length > 0) {
+            write("Sec-WebSocket-Protocol: ");
+            for (int i = 0; i < message.mSubProtocols.length; ++i) {
+                write(message.mSubProtocols[i]);
+                if (i != message.mSubProtocols.length - 1) {
                     write(", ");
                 }
             }
             write(CRLF);
         }
 
-        write("Sec-SocketCallBacks-Version: 13");
+        write("Sec-WebSocket-Version: 13");
         write(CRLF);
 
         // Header injection
