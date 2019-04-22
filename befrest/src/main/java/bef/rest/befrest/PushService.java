@@ -118,6 +118,7 @@ public class PushService extends Service implements SocketCallBacks {
                 connectionManager.forward(BefrestEvent.PING);
                 break;
             default:
+                connectIfNetworkAvailable();
 
         }
     }
