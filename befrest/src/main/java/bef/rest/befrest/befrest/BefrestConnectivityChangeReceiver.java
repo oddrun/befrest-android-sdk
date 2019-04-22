@@ -25,7 +25,6 @@ import bef.rest.befrest.utils.Util;
 
 import static bef.rest.befrest.utils.SDKConst.NETWORK_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.NETWORK_DISCONNECTED;
-import static bef.rest.befrest.utils.SDKConst.REFRESH;
 
 public final class BefrestConnectivityChangeReceiver extends BroadcastReceiver {
     private static final String TAG = BefrestConnectivityChangeReceiver.class.getSimpleName();
@@ -45,13 +44,6 @@ public final class BefrestConnectivityChangeReceiver extends BroadcastReceiver {
                         flag = NETWORK_DISCONNECTED;
                     }
                     Befrest.getInstance().startService(flag);
-                    break;
-                case Intent.ACTION_SCREEN_OFF:
-                    BefrestLog.d(TAG, "Screen off");
-                    break;
-                case Intent.ACTION_SCREEN_ON:
-                    BefrestLog.d(TAG, "Screen on");
-                    Befrest.getInstance().startService(REFRESH);
                     break;
             }
         }

@@ -26,6 +26,15 @@ import static bef.rest.befrest.utils.BefrestPreferences.setRunningService;
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTION_CHANGED;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CANNOT_CONNECT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_LOST;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_NOT_RESPONDING;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_HANDSHAKE_TIME_OUT;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_INTERNAL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_NORMAL;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
 import static bef.rest.befrest.utils.SDKConst.KEY_MESSAGE_PASSED;
 import static bef.rest.befrest.utils.SDKConst.PUSH;
 import static bef.rest.befrest.utils.SDKConst.TIME_PER_MESSAGE_IN_BATH_MODE;
@@ -120,6 +129,23 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     @Override
     public void onClose(int code, String reason) {
         BefrestLog.w(TAG, "onClose: connection close with code :" + code + " and reason : " + reason);
+        switch (code) {
+            case CLOSE_UNAUTHORIZED:
+                break;
+            case CLOSE_CANNOT_CONNECT:
+            case CLOSE_CONNECTION_LOST:
+            case CLOSE_INTERNAL_ERROR:
+            case CLOSE_NORMAL:
+            case CLOSE_CONNECTION_NOT_RESPONDING:
+            case CLOSE_PROTOCOL_ERROR:
+            case CLOSE_SERVER_ERROR:
+            case CLOSE_HANDSHAKE_TIME_OUT:
+                connectIfNetworkAvailable();
+                break;
+            default:
+                connectIfNetworkAvailable();
+        }
+
     }
 
     @Override
