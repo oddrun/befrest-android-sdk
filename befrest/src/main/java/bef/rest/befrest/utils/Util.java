@@ -136,30 +136,26 @@ public class Util {
     }
 
     @SuppressLint("InvalidWakeLockTag")
-    public static PowerManager.WakeLock acquireConnectWakeLockIfPossible(Context appContext,
-                                                                         PowerManager.WakeLock connectWakelock) {
-        if (Util.isWakeLockPermissionGranted(appContext)) {
-            if (connectWakelock != null) {
-                connectWakelock.isHeld();
+    public static PowerManager.WakeLock acquireConnectWakeLock(PowerManager.WakeLock connectWakelock) {
+        if (Util.isWakeLockPermissionGranted()) {
+            if (connectWakelock != null && connectWakelock.isHeld()) {
                 return connectWakelock;
-            } else {
-                PowerManager pm = (PowerManager) appContext.getSystemService(Context.POWER_SERVICE);
-                connectWakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, connectWakeLockName);
-                connectWakelock.setReferenceCounted(false);
             }
+            Context ctx = Befrest.getInstance().getContext();
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            connectWakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, connectWakeLockName);
+            connectWakelock.setReferenceCounted(false);
             connectWakelock.acquire(10 * 60 * 1000L /*10 minutes*/);
             BefrestLog.i(TAG, "acquiredConnectWakelock");
             return connectWakelock;
-        } else
-            BefrestLog.i(TAG, "could not acquire connect wakelock. (permission not granted)");
+        }
+        BefrestLog.i(TAG, "could not acquire connect wakelock. (permission not granted)");
         return null;
-
     }
 
-
-    private static boolean isWakeLockPermissionGranted(Context context) {
-        int res = context.checkCallingOrSelfPermission(Manifest.permission.WAKE_LOCK);
-        return (res == PackageManager.PERMISSION_GRANTED);
+    private static boolean isWakeLockPermissionGranted() {
+        return Befrest.getInstance().getContext().checkCallingOrSelfPermission(
+                Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED;
     }
 
     /**
