@@ -63,7 +63,6 @@ public class PushService extends Service implements SocketCallBacks {
     private HandlerThread messageHandlerThread;
     private boolean retryInProgress;
     private List<BefrestMessage> receivedMessages = new ArrayList<>();
-    private BefrestContract befrestContract;
     private boolean isBachReceiveMode;
     private int batchSize;
 
@@ -74,7 +73,6 @@ public class PushService extends Service implements SocketCallBacks {
 
     @Override
     public void onCreate() {
-        befrestContract = new BefrestContract();
         mainThreadHandler = new Handler();
         befrestHandler = new HandlerThread("BefrestConnectionThread");
         befrestHandler.start();
@@ -222,7 +220,7 @@ public class PushService extends Service implements SocketCallBacks {
     public void onTaskRemoved(Intent rootIntent) {
         if (SDK_INT < OREO_SDK_INT) {
             BefrestLog.i(TAG, "onTaskRemoved : ");
-            befrestContract.setAlarmService(this);
+            BefrestContract.getInstance().setAlarmService(this);
         } else {
             Befrest.getInstance().unRegister();
             stopSelf();
@@ -322,7 +320,7 @@ public class PushService extends Service implements SocketCallBacks {
         Parcelable[] data = new BefrestMessage[messages.size()];
         Bundle b = new Bundle(1);
         b.putParcelableArray(KEY_MESSAGE_PASSED, messages.toArray(data));
-        befrestContract.sendBefrestBroadcast(this, PUSH, b);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, PUSH, b);
     }
 
     /**
@@ -334,7 +332,7 @@ public class PushService extends Service implements SocketCallBacks {
     protected void onChangedConnection(boolean isConnect) {
         Bundle b = new Bundle(1);
         b.putBoolean(KEY_MESSAGE_PASSED, isConnect);
-        befrestContract.sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
     }
 
     /**
@@ -344,7 +342,7 @@ public class PushService extends Service implements SocketCallBacks {
      * call super() if you want to receive this callback also in your broadcast receivers.
      */
     protected void onAuthorizeProblem() {
-        befrestContract.sendBefrestBroadcast(this, UNAUTHORIZED, null);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, UNAUTHORIZED, null);
     }
 
     /**
@@ -355,10 +353,10 @@ public class PushService extends Service implements SocketCallBacks {
      */
 
     protected void onBefrestConnect() {
-        befrestContract.sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
     }
 
     protected void connectionRefreshed() {
-        befrestContract.sendBefrestBroadcast(this, CONNECTION_REFRESHED, null);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, CONNECTION_REFRESHED, null);
     }
 }

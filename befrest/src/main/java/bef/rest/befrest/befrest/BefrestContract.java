@@ -23,8 +23,16 @@ public class BefrestContract {
 
     private BefrestConnectivityChangeReceiver befrestConnectivityChangeReceiver;
 
-    public BefrestContract() {
+    private BefrestContract() {
         befrestConnectivityChangeReceiver = new BefrestConnectivityChangeReceiver();
+    }
+
+    private static class Loader {
+        private static volatile BefrestContract instance = new BefrestContract();
+    }
+
+    public static BefrestContract getInstance() {
+        return Loader.instance;
     }
 
     public void sendBefrestBroadcast(Context context, int type, Bundle extras) {

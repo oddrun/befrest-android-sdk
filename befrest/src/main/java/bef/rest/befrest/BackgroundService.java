@@ -43,7 +43,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     private static final String TAG = "BackgroundService";
     private JobParameters parameters;
-    private BefrestContract befrestContract;
     private Handler mainThreadHandler;
     private HandlerThread befrestHandler;
     private ConnectionManager connectionManager;
@@ -72,7 +71,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     }
 
     private void init() {
-        befrestContract = new BefrestContract();
         mainThreadHandler = new Handler();
         befrestHandler = new HandlerThread("BefrestThread");
         befrestHandler.start();
@@ -191,11 +189,11 @@ public class BackgroundService extends JobService implements SocketCallBacks {
         Parcelable[] data = new BefrestMessage[messages.size()];
         Bundle b = new Bundle(1);
         b.putParcelableArray(KEY_MESSAGE_PASSED, messages.toArray(data));
-        befrestContract.sendBefrestBroadcast(this, PUSH, b);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, PUSH, b);
     }
 
     private void onBefrestConnected() {
-        befrestContract.sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
     }
 
     private void postFinishBachModeAgain() {
@@ -224,6 +222,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     private Runnable onConnectionChange = () -> {
         Bundle b = new Bundle(1);
         b.putBoolean(KEY_MESSAGE_PASSED, isConnected);
-        befrestContract.sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
+        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
     };
 }

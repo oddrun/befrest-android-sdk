@@ -27,7 +27,7 @@ public class Befrest implements BefrestAppDelegate {
     private Class<?> pushService;
     private boolean isBefrestStart;
     private boolean wantToStart;
-    private BefrestContract befrestContract;
+
     private BefrestAppLifeCycle befrestAppLifeCycle;
     private boolean isServiceRunning = false;
 
@@ -42,7 +42,6 @@ public class Befrest implements BefrestAppDelegate {
 
     private Befrest() {
         pushService = PushService.class;
-        befrestContract = new BefrestContract();
     }
 
     public static void init(Context context, int uid, String authToken, String chId) {
@@ -52,7 +51,7 @@ public class Befrest implements BefrestAppDelegate {
 
     @SuppressWarnings("UnusedReturnValue")
     public Befrest start() {
-        befrestContract.registerBroadcastReceiver();
+        BefrestContract.getInstance().registerBroadcastReceiver();
         wantToStart = true;
         startBefrest();
         watchAppLifeCycle();
@@ -132,7 +131,7 @@ public class Befrest implements BefrestAppDelegate {
      * stop Befrest Service
      */
     public void stop() {
-        befrestContract.unRegisterBroadCastReceiver();
+        BefrestContract.getInstance().unRegisterBroadCastReceiver();
         if (isMyServiceRunning(pushService)) {
             wantToStart = false;
             stopBefrest();
