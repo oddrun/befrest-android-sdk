@@ -83,7 +83,7 @@ public final class BefrestMessage implements Parcelable {
 
 
     public String getAckMessage() {
-        return "A" + type.toString().charAt(0) + msgId;
+        return "A" + type.toString().toUpperCase().charAt(0) + msgId;
     }
 
     @Override

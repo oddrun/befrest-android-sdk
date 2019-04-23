@@ -27,7 +27,6 @@ public class BefrestContract {
         befrestConnectivityChangeReceiver = new BefrestConnectivityChangeReceiver();
     }
 
-
     public void sendBefrestBroadcast(Context context, int type, Bundle extras) {
         try {
             Intent intent = new Intent(ACTION_BEFREST_PUSH);
@@ -37,23 +36,18 @@ public class BefrestContract {
             long now = System.currentTimeMillis();
             intent.putExtra(KEY_TIME_SENT, "" + now);
             context.getApplicationContext().sendBroadcast(intent, permission);
-
         } catch (Exception ignored) {
         }
     }
 
-
     void registerBroadcastReceiver() {
         try {
-            IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
-            filter.addAction(Intent.ACTION_SCREEN_ON);
-            filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
             Befrest.getInstance().getContext().registerReceiver(befrestConnectivityChangeReceiver, filter);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 
     void unRegisterBroadCastReceiver() {
         try {

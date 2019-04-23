@@ -13,44 +13,45 @@ import static bef.rest.befrest.utils.SDKConst.API_VERSION;
 import static bef.rest.befrest.utils.SDKConst.SDK_VERSION;
 
 public class UrlConnection {
-    private static UrlConnection instance;
-    private String mWsScheme;
-    private String mWsHost;
-    private int mWsPort;
-    private String mWsPath;
-    private String mWsQuery;
-    private String[] mWsSubprotocols;
+
+    private String scheme;
+    private String host;
+    private int port;
+    private String path;
+    private String query;
+    private String[] subProtocol;
     private WebSocketOptions webSocketOptions;
     private List<NameValuePair> header;
     private String subscribeUrl;
 
+    private static class Loader {
+        private static volatile UrlConnection instance = new UrlConnection();
+    }
+
     private UrlConnection() {
         try {
             URI baseUri = new URI(getUrl());
-            mWsScheme = baseUri.getScheme();
+            scheme = baseUri.getScheme();
             if (baseUri.getPort() == -1) {
-                if (mWsScheme.equals("ws")) mWsPort = 80;
-                else mWsPort = 443;
-            } else mWsPort = baseUri.getPort();
-            mWsHost = baseUri.getHost();
-            if (baseUri.getRawPath() == null || baseUri.getRawPath().equals("")) mWsPath = "/";
-            else mWsPath = baseUri.getRawPath();
+                if (scheme.equals("ws")) port = 80;
+                else port = 443;
+            } else port = baseUri.getPort();
+            host = baseUri.getHost();
+            if (baseUri.getRawPath() == null || baseUri.getRawPath().equals("")) path = "/";
+            else path = baseUri.getRawPath();
             if (baseUri.getRawQuery() == null || baseUri.getRawQuery().equals(""))
-                mWsQuery = null;
-            else mWsQuery = baseUri.getRawQuery();
+                query = null;
+            else query = baseUri.getRawQuery();
             webSocketOptions = new WebSocketOptions();
             this.header = getHeader();
-            mWsSubprotocols = null;
+            subProtocol = null;
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
     }
 
     public synchronized static UrlConnection getInstance() {
-        if (instance == null) {
-            instance = new UrlConnection();
-        }
-        return instance;
+        return Loader.instance;
     }
 
     private List<NameValuePair> getHeader() {
@@ -73,43 +74,43 @@ public class UrlConnection {
     }
 
 
-    public String getmWsScheme() {
-        return mWsScheme;
+    public String getScheme() {
+        return scheme;
     }
 
-    public String getmWsHost() {
-        return mWsHost;
+    public String getHost() {
+        return host;
     }
 
-    public int getmWsPort() {
-        return mWsPort;
+    public int getPort() {
+        return port;
     }
 
-    public void setmWsScheme(String mWsScheme) {
-        this.mWsScheme = mWsScheme;
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
     }
 
-    public void setmWsPort(int mWsPort) {
-        this.mWsPort = mWsPort;
+    public void setPort(int port) {
+        this.port = port;
     }
 
-    public String getmWsPath() {
-        return mWsPath;
+    public String getPath() {
+        return path;
     }
 
-    public String getmWsQuery() {
-        return mWsQuery;
+    public String getQuery() {
+        return query;
     }
 
-    public String[] getmWsSubprotocols() {
-        return mWsSubprotocols;
+    public String[] getSubProtocol() {
+        return subProtocol;
     }
 
     public WebSocketOptions getOptions() {
         return webSocketOptions;
     }
 
-    public List<NameValuePair> getmWsHeaders() {
+    public List<NameValuePair> getHeaders() {
         return header;
     }
 }

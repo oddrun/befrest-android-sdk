@@ -62,7 +62,7 @@ public class ClientData {
         saveString(PREF_CH_ID, chId);
     }
 
-    public void setTopics(String topic) {
+    public void addTopic(String topic) {
         String s = this.topics;
         if (s.length() > 0) {
             s += "-";

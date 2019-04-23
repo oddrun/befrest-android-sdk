@@ -2,7 +2,7 @@ package bef.rest.befrest.befrest;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
-import android.app.job.JobScheduler;
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -15,26 +15,21 @@ import bef.rest.befrest.PushService;
 import bef.rest.befrest.clientData.ClientData;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
-import bef.rest.befrest.utils.Util;
 
-import static bef.rest.befrest.utils.BefrestPreferences.PREF_CUSTOM_PUSH_SERVICE_NAME;
-import static bef.rest.befrest.utils.BefrestPreferences.saveString;
-import static bef.rest.befrest.utils.BefrestPreferences.setRunningService;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.OREO_SDK_INT;
 import static bef.rest.befrest.utils.SDKConst.REFRESH;
 import static bef.rest.befrest.utils.SDKConst.SDK_INT;
 
-@SuppressWarnings({"UnusedReturnValue", "unused"})
-public class Befrest {
+public class Befrest implements BefrestAppDelegate {
     private static final String TAG = "Befrest";
     private Context context;
     private Class<?> pushService;
     private boolean isBefrestStart;
-    private JobScheduler jobScheduler;
-    private boolean isAppInForeground;
     private boolean wantToStart;
     private BefrestContract befrestContract;
+    private BefrestAppLifeCycle befrestAppLifeCycle;
+    private boolean isServiceRunning = false;
 
     private static class Loader {
         @SuppressLint("StaticFieldLeak")
@@ -48,7 +43,6 @@ public class Befrest {
     private Befrest() {
         pushService = PushService.class;
         befrestContract = new BefrestContract();
-
     }
 
     public static void init(Context context, int uid, String authToken, String chId) {
@@ -56,16 +50,25 @@ public class Befrest {
         ClientData.getInstance().setData(uid, chId, authToken);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public Befrest start() {
         befrestContract.registerBroadcastReceiver();
         wantToStart = true;
         startBefrest();
+        watchAppLifeCycle();
         return this;
+    }
+
+    private void watchAppLifeCycle() {
+        befrestAppLifeCycle = new BefrestAppLifeCycle(this);
+        context.registerComponentCallbacks(befrestAppLifeCycle);
+        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
     }
 
     /**
      * @param customPushService that befrest will start This class must extend rest.bef.PushService
      */
+    @SuppressWarnings("unused")
     public Befrest setCustomPushService(Class<? extends PushService> customPushService) {
         if (customPushService == null)
             BefrestLog.w(TAG, "custom PushService can not be null");
@@ -73,39 +76,20 @@ public class Befrest {
             BefrestLog.w(TAG, "can not assign customPushService after service run");
         } else {
             this.pushService = customPushService;
-            saveString(PREF_CUSTOM_PUSH_SERVICE_NAME, customPushService.getName());
         }
         return this;
     }
 
     /**
-     * @param topic topic that user want to subscribe on
+     * @param topics topics that user want to subscribe on
      * @return befrest instance
      */
-    public Befrest addTopic(String topic) {
-        if (topic == null || topic.length() < 1 || !topic.matches("[A-Za-z0-9]+")) {
-            BefrestLog.w(TAG, "Topic Name Should be AlphaNumeric");
-            return this;
-        }
+    @SuppressWarnings("UnusedReturnValue")
+    public Befrest addTopics(String... topics) {
         String t = ClientData.getInstance().getTopics();
         List<String> currentTopics = Arrays.asList(t.split("-"));
-        if (currentTopics.contains(topic)) {
-            BefrestLog.w(TAG, "Topic :" + topic + " has Already Exist");
-            return this;
-        }
-        ClientData.getInstance().setTopics(topic);
-        return this;
-    }
-
-    /**
-     * @param topicToAdd topics that user want to subscribe on
-     * @return befrest instance
-     */
-    public Befrest addTopics(String... topicToAdd) {
-        String t = ClientData.getInstance().getTopics();
-        List<String> currentTopics = Arrays.asList(t.split("-"));
-        for (String s : topicToAdd) {
-            if (s == null || s.length() < 1 || !s.matches("[A-Za-z0-9]+")) {
+        for (String s : topics) {
+            if (s.trim().length() == 0 || !s.matches("[A-Za-z0-9]+")) {
                 BefrestLog.w(TAG, "Topic Name Should be AlphaNumeric");
                 continue;
             }
@@ -113,32 +97,16 @@ public class Befrest {
                 BefrestLog.w(TAG, "Topic : " + s + " has already exist");
                 continue;
             }
-            ClientData.getInstance().setTopics(s);
+            ClientData.getInstance().addTopic(s);
         }
         return this;
     }
 
-    public boolean removeTopic(String topicName) {
-        String[] splittedTopics = ClientData.getInstance().getTopics().split("-");
-        boolean found = false;
-        StringBuilder resTopics = new StringBuilder();
-        for (String splittedTopic : splittedTopics) {
-            if (splittedTopic.equals(topicName))
-                found = true;
-            else resTopics.append(splittedTopic).append("-");
-        }
-        if (!found)
-            return false;
-        if (resTopics.length() > 0)
-            resTopics = new StringBuilder(resTopics.substring(0, resTopics.length() - 1));
-        ClientData.getInstance().updateTopic(resTopics.toString());
-        return true;
-    }
-
-    public Befrest removeTopics(String... topicsToRemove) {
-        final List<String> toRemove = Arrays.asList(topicsToRemove);
-        String topics = ClientData.getInstance().getTopics();
-        final String[] currTopics = topics.split("-");
+    @SuppressWarnings("UnusedReturnValue")
+    public Befrest removeTopics(String... topics) {
+        final List<String> toRemove = Arrays.asList(topics);
+        String currentTopics = ClientData.getInstance().getTopics();
+        final String[] currTopics = currentTopics.split("-");
         StringBuilder resTopics = new StringBuilder();
         for (String topic : currTopics) {
             if (!toRemove.contains(topic))
@@ -146,11 +114,12 @@ public class Befrest {
         }
         if (resTopics.length() > 0)
             resTopics = new StringBuilder(resTopics.substring(0, resTopics.length() - 1));
-        BefrestLog.i(TAG, "Topics to remove is " + topics);
+        BefrestLog.i(TAG, "Topics to remove is " + currentTopics);
         ClientData.getInstance().updateTopic(resTopics.toString());
         return this;
     }
 
+    @SuppressWarnings("unused")
     public void clearTopic() {
         ClientData.getInstance().clearTopic();
     }
@@ -175,18 +144,18 @@ public class Befrest {
             JobServiceManager.getInstance().cancelJob();
         }
         if (!isMyServiceRunning(pushService)) {
-            BefrestLog.i(TAG, "startBefrest: Push Service will be Start");
+            BefrestLog.i(TAG, "startBefrest: Service is starting");
+            isBefrestStart = true;
             startService(CONNECT);
         } else {
-            BefrestLog.i(TAG, "startBefrest: PushService is Already Running");
+            BefrestLog.i(TAG, "startBefrest: Service is already running");
         }
-        Util.enableConnectivityChangeListener(context.getApplicationContext());
     }
 
     public void startService(String event) {
         try {
             BefrestLog.i(TAG, "Start Service : with event " + event);
-            setRunningService(true);
+            isServiceRunning = true;
             Intent intent = new Intent(context, pushService);
             intent.putExtra(event, true);
             context.startService(intent);
@@ -214,17 +183,34 @@ public class Befrest {
     }
 
     private void stopBefrest() {
+        unRegister();
         BefrestLog.v(TAG, "Befrest stopped");
         Intent intent = new Intent(context, pushService);
         context.stopService(intent);
-        isBefrestStart = false;
         BefrestLog.d(TAG, "want to Start is " + wantToStart + " , Api Level is : " + SDK_INT);
+    }
+
+    public void unRegister() {
+        ((Application) context).unregisterActivityLifecycleCallbacks(befrestAppLifeCycle);
+    }
+
+    @Override
+    public void onAppForeground() {
+        if (!isBefrestStart && wantToStart) {
+            if (SDK_INT >= OREO_SDK_INT) {
+                JobServiceManager.getInstance().cancelJob();
+                startService(CONNECT);
+            }
+        }
+    }
+
+    @Override
+    public void onAppBackground() {
     }
 
     public void setLogLevel(int logLevel) {
         ClientData.getInstance().setLogLevel(logLevel);
     }
-
 
     public void setBefrestStart(boolean befrestStart) {
         isBefrestStart = befrestStart;
@@ -246,19 +232,19 @@ public class Befrest {
         this.context = context;
     }
 
-    public boolean isAppInForeground() {
-        return isAppInForeground;
-    }
-
-    public void setAppInForeground(boolean appInForeground) {
-        isAppInForeground = appInForeground;
-    }
-
     public String[] getTopics() {
         return ClientData.getInstance().getTopics().split("-");
     }
 
     public boolean isWantToStart() {
         return wantToStart;
+    }
+
+    public boolean isServiceRunning() {
+        return isServiceRunning;
+    }
+
+    public void setServiceRunning(boolean serviceRunning) {
+        isServiceRunning = serviceRunning;
     }
 }

@@ -264,7 +264,7 @@ class WebSocketWriter extends Handler {
      * Send WebSockets text message.
      */
     private void sendTextMessage(WebSocketMessage.TextMessage message) throws IOException, WebSocketException {
-        byte[] payload = message.mPayload.getBytes("UTF-8");
+        byte[] payload = message.payload.getBytes("UTF-8");
         if (payload.length > mOptions.getMaxMessagePayloadSize()) {
             throw new WebSocketException("message payload exceeds payload limit");
         }

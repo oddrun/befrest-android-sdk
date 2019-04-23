@@ -53,7 +53,6 @@ import static bef.rest.befrest.utils.Util.getIntentEvent;
 import static bef.rest.befrest.utils.Util.getNextReconnectInterval;
 import static bef.rest.befrest.utils.Util.getSendOnAuthorizeBroadcastDelay;
 
-
 public class PushService extends Service implements SocketCallBacks {
 
     private static String TAG = PushService.class.getName();
@@ -78,9 +77,9 @@ public class PushService extends Service implements SocketCallBacks {
         befrestContract = new BefrestContract();
         mainThreadHandler = new Handler();
         befrestHandler = new HandlerThread("BefrestConnectionThread");
+        befrestHandler.start();
         messageHandlerThread = new HandlerThread("BefrestMessageHandler");
         messageHandlerThread.start();
-        befrestHandler.start();
         connectionManager = new ConnectionManager(befrestHandler.getLooper(), this);
         messageHandler = new Handler(messageHandlerThread.getLooper());
         super.onCreate();
@@ -90,9 +89,7 @@ public class PushService extends Service implements SocketCallBacks {
     public int onStartCommand(Intent intent, int flags, int startId) {
         BefrestLog.v(TAG, "onStartCommand : with Intent : " + getIntentEvent(intent));
         handleEvent(getIntentEvent(intent));
-        if (SDK_INT >= OREO_SDK_INT)
-            return START_NOT_STICKY;
-        return START_STICKY;
+        return SDK_INT >= OREO_SDK_INT ? START_NOT_STICKY : START_STICKY;
     }
 
     public void handleEvent(String event) {
@@ -120,7 +117,6 @@ public class PushService extends Service implements SocketCallBacks {
                 break;
             default:
                 connectIfNetworkAvailable();
-
         }
     }
 
@@ -140,7 +136,6 @@ public class PushService extends Service implements SocketCallBacks {
         setupRetryMode(getNextReconnectInterval());
         prevFailedConnectTries++;
         BefrestLog.w(TAG, "schedule to Reconnect after " + getNextReconnectInterval());
-
     }
 
     private void handleAuthorizeProblem() {
@@ -208,6 +203,7 @@ public class PushService extends Service implements SocketCallBacks {
             messageHandlerThread.quit();
             messageHandlerThread.join();
             messageHandlerThread = null;
+            Befrest.getInstance().setBefrestStart(false);
             if (Befrest.getInstance().isWantToStart()) {
                 if (SDK_INT >= OREO_SDK_INT) {
                     JobServiceManager.getInstance().scheduleJob();
@@ -219,6 +215,7 @@ public class PushService extends Service implements SocketCallBacks {
         connectionManager = null;
         BefrestLog.w(TAG, "------------------------onDestroy: Finish------------------------");
         super.onDestroy();
+        Befrest.getInstance().setServiceRunning(false);
     }
 
     @Override
@@ -226,8 +223,10 @@ public class PushService extends Service implements SocketCallBacks {
         if (SDK_INT < OREO_SDK_INT) {
             BefrestLog.i(TAG, "onTaskRemoved : ");
             befrestContract.setAlarmService(this);
-        } else
+        } else {
+            Befrest.getInstance().unRegister();
             stopSelf();
+        }
         super.onTaskRemoved(rootIntent);
     }
 

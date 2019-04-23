@@ -28,20 +28,20 @@ public class SocketHelper {
     }
 
     public void createSocket() throws IOException {
-        String wsHost = wrapper.getmWsHost();
-        int mWsPort = wrapper.getmWsPort();
+        String host = wrapper.getHost();
+        int port = wrapper.getPort();
         WebSocketOptions webSocketOptions = wrapper.getOptions();
-        if (wrapper.getmWsScheme().equals("wss")) {
+        if (wrapper.getScheme().equals("wss")) {
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket secSoc = (SSLSocket) factory.createSocket();
             secSoc.setUseClientMode(true);
-            secSoc.connect(new InetSocketAddress(wsHost, mWsPort), webSocketOptions.getSocketConnectTimeout());
+            secSoc.connect(new InetSocketAddress(host, port), webSocketOptions.getSocketConnectTimeout());
             secSoc.setTcpNoDelay(webSocketOptions.getTcpNoDelay());
             secSoc.addHandshakeCompletedListener(event -> {
             });
             socket = secSoc;
         } else
-            socket = new Socket(wsHost, mWsPort);
+            socket = new Socket(host, port);
         createWriter();
         createReader();
     }
@@ -69,11 +69,11 @@ public class SocketHelper {
     public void startWebSocketHandshake() {
         BefrestLog.i(TAG, "startWebSocketHandShake");
         WebSocketMessage.ClientHandshake hs = new WebSocketMessage.ClientHandshake(
-                wrapper.getmWsHost() + ":" + wrapper.getmWsPort());
-        hs.mPath = wrapper.getmWsPath();
-        hs.mQuery = wrapper.getmWsQuery();
-        hs.mSubProtocols = wrapper.getmWsSubprotocols();
-        hs.mHeaderList = wrapper.getmWsHeaders();
+                wrapper.getHost() + ":" + wrapper.getPort());
+        hs.mPath = wrapper.getPath();
+        hs.mQuery = wrapper.getQuery();
+        hs.mSubProtocols = wrapper.getSubProtocol();
+        hs.mHeaderList = wrapper.getHeaders();
         writeOnWebSocket(hs);
     }
 

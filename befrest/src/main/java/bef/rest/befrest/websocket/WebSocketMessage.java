@@ -100,10 +100,10 @@ public class WebSocketMessage {
 
    public static class TextMessage extends Message {
 
-      public String mPayload;
+      public String payload;
 
       TextMessage(String payload) {
-         mPayload = payload;
+         this.payload = payload;
       }
    }
 

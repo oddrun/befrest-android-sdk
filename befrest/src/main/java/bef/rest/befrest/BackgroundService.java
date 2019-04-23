@@ -22,7 +22,6 @@ import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.websocket.SocketCallBacks;
 
-import static bef.rest.befrest.utils.BefrestPreferences.setRunningService;
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTION_CHANGED;
@@ -41,6 +40,7 @@ import static bef.rest.befrest.utils.SDKConst.TIME_PER_MESSAGE_IN_BATH_MODE;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class BackgroundService extends JobService implements SocketCallBacks {
+
     private static final String TAG = "BackgroundService";
     private JobParameters parameters;
     private BefrestContract befrestContract;
@@ -56,14 +56,12 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     @Override
     public boolean onStartJob(JobParameters params) {
         BefrestLog.d(TAG, "onStartJob: job started");
-        setRunningService(false);
         parameters = params;
         init();
         connectIfNetworkAvailable();
         mainThreadHandler.postDelayed(jobFinishSuccessfully, 20_000);
         return true;
     }
-
 
     private void connectIfNetworkAvailable() {
         BefrestLog.i(TAG, "try to connect if network is available");
@@ -72,7 +70,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
             Befrest.getInstance().setBefrestStart(true);
         }
     }
-
 
     private void init() {
         befrestContract = new BefrestContract();
@@ -145,7 +142,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
             default:
                 connectIfNetworkAvailable();
         }
-
     }
 
     @Override
@@ -211,6 +207,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
         BefrestLog.i(TAG, "jobFinishSuccessfully");
         jobFinished(parameters, false);
     };
+
     private Runnable finishBatchMode = () -> {
         int receivedMsgSize = receivedMessages.size();
         if (receivedMsgSize < batchSize - 1) {
@@ -222,6 +219,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
         if (receivedMsgSize > 0)
             handleReceivedMessages();
     };
+
     private Runnable befrestConnected = this::onBefrestConnected;
     private Runnable onConnectionChange = () -> {
         Bundle b = new Bundle(1);

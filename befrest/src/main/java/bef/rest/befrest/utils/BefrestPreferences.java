@@ -30,7 +30,6 @@ public class BefrestPreferences {
     private static final String PREF_SERVICE_CHOOSER = "PREF_SERVICE_CHOOSER";
     public static final String PREF_TOPICS = "PREF_TOPICS";
     static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
-    public static final String PREF_CUSTOM_PUSH_SERVICE_NAME = "PREF_CUSTOM_PUSH_SERVICE_NAME";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
 
 
@@ -84,19 +83,4 @@ public class BefrestPreferences {
         editor.apply();
 
     }
-
-    /**
-     * @param value save into sharedPreferences
-     */
-    public static void setRunningService(boolean value) {
-        saveBoolean(PREF_SERVICE_CHOOSER, value);
-    }
-
-    /*
-     * @return false if job scheduler is running
-     */
-    public static boolean getRunningService() {
-        return getPrefs().getBoolean(PREF_SERVICE_CHOOSER, false);
-    }
-
 }
