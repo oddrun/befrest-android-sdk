@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import bef.rest.befrest.autobahnLibrary.WebSocketOptions;
 import bef.rest.befrest.clientData.ClientData;
-import bef.rest.befrest.websocket.WebSocketOptions;
 
 import static bef.rest.befrest.utils.SDKConst.API_VERSION;
 import static bef.rest.befrest.utils.SDKConst.SDK_VERSION;

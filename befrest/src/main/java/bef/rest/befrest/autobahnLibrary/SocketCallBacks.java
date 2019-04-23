@@ -1,4 +1,3 @@
-package bef.rest.befrest.websocket;
 /******************************************************************************
  * Copyright 2015-2016 Befrest
  * <p/>
@@ -15,12 +14,19 @@ package bef.rest.befrest.websocket;
  * limitations under the License.
  ******************************************************************************/
 
-class WebSocketException extends Exception {
 
-   private static final long serialVersionUID = 1L;
+package bef.rest.befrest.autobahnLibrary;
 
-   WebSocketException(String message) {
-      super(message);
-   }
+import bef.rest.befrest.befrest.BefrestMessage;
 
+public interface SocketCallBacks {
+    void onOpen();
+
+    void onClose(int code, String reason);
+
+    void onConnectionRefreshed();
+
+    void onBefrestMessage(BefrestMessage msg);
+
+    void changeConnection(boolean isConnect);
 }

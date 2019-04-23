@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
 import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
@@ -19,7 +20,6 @@ import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
 import bef.rest.befrest.utils.Util;
-import bef.rest.befrest.websocket.SocketCallBacks;
 
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
@@ -336,9 +336,9 @@ public class PushService extends Service implements SocketCallBacks {
     }
 
     /**
-     * Called when there is a problem with your Authentication token.
-     * The Service encounters authorization errors while trying to connect to Befrest servers.
-     * The method is called in main thread of the application (UiThread)
+     * Called when there is a problem with your Authentication token.<br>
+     * The Service encounters authorization errors while trying to connect to Befrest servers.<br>
+     * The method is called in main thread of the application (UiThread)<br>
      * call super() if you want to receive this callback also in your broadcast receivers.
      */
     protected void onAuthorizeProblem() {

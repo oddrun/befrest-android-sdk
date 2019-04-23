@@ -7,11 +7,14 @@ import android.os.Message;
 import android.os.PowerManager;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 
 import javax.net.ssl.SSLException;
 
+import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
+import bef.rest.befrest.autobahnLibrary.WebSocketMessage;
 import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
@@ -19,9 +22,7 @@ import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.MessageIdPersister;
 import bef.rest.befrest.utils.UrlConnection;
 import bef.rest.befrest.utils.Util;
-import bef.rest.befrest.websocket.SocketCallBacks;
 import bef.rest.befrest.websocket.SocketHelper;
-import bef.rest.befrest.websocket.WebSocketMessage;
 
 import static bef.rest.befrest.utils.SDKConst.CLOSE_CANNOT_CONNECT;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_LOST;
@@ -280,8 +281,7 @@ public class ConnectionManager extends Handler {
             } else {
                 BefrestLog.w(TAG, "Befrest connection already established");
             }
-        } catch (SocketTimeoutException | SSLException e) {
-            // todo: catch all possible SSL related exceptions
+        } catch (SocketTimeoutException | SSLException | SocketException e) {
             BefrestLog.i(TAG, "Switch to ws and port 80");
             UrlConnection.getInstance().setScheme("ws");
             UrlConnection.getInstance().setPort(80);

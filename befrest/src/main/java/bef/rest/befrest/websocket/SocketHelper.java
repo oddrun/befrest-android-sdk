@@ -10,6 +10,10 @@ import java.net.Socket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import bef.rest.befrest.autobahnLibrary.WebSocketMessage;
+import bef.rest.befrest.autobahnLibrary.WebSocketOptions;
+import bef.rest.befrest.autobahnLibrary.WebSocketReader;
+import bef.rest.befrest.autobahnLibrary.WebSocketWriter;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.UrlConnection;
 

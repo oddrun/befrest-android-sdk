@@ -1,3 +1,4 @@
+package bef.rest.befrest.autobahnLibrary;
 /******************************************************************************
  * Copyright 2015-2016 Befrest
  * <p/>
@@ -14,19 +15,12 @@
  * limitations under the License.
  ******************************************************************************/
 
+class WebSocketException extends Exception {
 
-package bef.rest.befrest.websocket;
+   private static final long serialVersionUID = 1L;
 
-import bef.rest.befrest.befrest.BefrestMessage;
+   WebSocketException(String message) {
+      super(message);
+   }
 
-public interface SocketCallBacks {
-    void onOpen();
-
-    void onClose(int code, String reason);
-
-    void onConnectionRefreshed();
-
-    void onBefrestMessage(BefrestMessage msg);
-
-    void changeConnection(boolean isConnect);
 }

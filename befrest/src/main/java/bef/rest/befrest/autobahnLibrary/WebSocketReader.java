@@ -15,7 +15,7 @@
  ******************************************************************************/
 
 
-package bef.rest.befrest.websocket;
+package bef.rest.befrest.autobahnLibrary;
 
 import android.os.Handler;
 import android.os.Message;

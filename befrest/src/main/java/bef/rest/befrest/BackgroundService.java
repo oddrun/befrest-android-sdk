@@ -14,13 +14,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
 import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
-import bef.rest.befrest.websocket.SocketCallBacks;
 
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
