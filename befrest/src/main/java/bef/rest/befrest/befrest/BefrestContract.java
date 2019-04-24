@@ -77,10 +77,10 @@ public class BefrestContract {
 
 
     public void reportOnClose(int code) {
-        //todo save close connection in sharedPreferences
+        //todo save close connection
     }
 
     public void reportOnOpen(Context context) {
-        //todo open connection in sharedPreferences
+        //todo save open connection
     }
 }

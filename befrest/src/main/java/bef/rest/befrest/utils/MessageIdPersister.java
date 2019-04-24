@@ -41,17 +41,16 @@ public class MessageIdPersister extends BoundedLinkedHashSet<String> {
         saveString(PREF_LAST_RECEIVED_MESSAGES, toString());
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public String toString() {
         Iterator<String> it = iterator();
         if (!it.hasNext())
             return "";
         StringBuilder sb = new StringBuilder();
-        for (; ; ) {
-            sb.append(it.next());
-            if (!it.hasNext())
-                return sb.toString();
-            sb.append(',');
-        }
+        sb.append(it.next());
+        while (it.hasNext())
+            sb.append(",").append(it.next());
+        return sb.toString();
     }
 }

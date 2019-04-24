@@ -222,7 +222,7 @@ public class PushService extends Service implements SocketCallBacks {
             BefrestLog.i(TAG, "onTaskRemoved : ");
             BefrestContract.getInstance().setAlarmService(this);
         } else {
-            Befrest.getInstance().unRegister();
+            Befrest.getInstance().unregisterWatchAppLifeCycle();
             stopSelf();
         }
         super.onTaskRemoved(rootIntent);
@@ -311,7 +311,7 @@ public class PushService extends Service implements SocketCallBacks {
 
     /**
      * this method called when new Message(s) received from Server
-     *
+     *<br>
      * @param messages new Messages that come from Server
      *                 call super() if you want receive message from Receiver(s)
      */

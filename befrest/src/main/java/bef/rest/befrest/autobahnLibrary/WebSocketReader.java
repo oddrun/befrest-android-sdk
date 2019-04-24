@@ -40,7 +40,7 @@ import bef.rest.befrest.utils.Utf8Validator;
  * which gracefully shuts down the background receiver thread.
  */
 @SuppressWarnings("CharsetObjectCanBeUsed")
-class WebSocketReader extends Thread {
+public class WebSocketReader extends Thread {
 
     private final Handler mMaster;
     private final WebSocketOptions mOptions;
@@ -88,7 +88,7 @@ class WebSocketReader extends Thread {
      * @param master The message handler of master (foreground thread).
      * @param socket The socket channel created on foreground thread.
      */
-    WebSocketReader(Handler master, Socket socket, WebSocketOptions options, String threadName)
+    public WebSocketReader(Handler master, Socket socket, WebSocketOptions options, String threadName)
             throws IOException {
         super(threadName);
         mMaster = master;
@@ -105,7 +105,7 @@ class WebSocketReader extends Thread {
     /**
      * Graceful shutdown of background reader thread (called from master).
      */
-    void quit() {
+    public void quit() {
         mState = STATE_CLOSED;
     }
 

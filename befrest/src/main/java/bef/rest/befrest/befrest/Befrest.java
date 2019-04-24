@@ -182,14 +182,14 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     private void stopBefrest() {
-        unRegister();
+        unregisterWatchAppLifeCycle();
         BefrestLog.v(TAG, "Befrest stopped");
         Intent intent = new Intent(context, pushService);
         context.stopService(intent);
         BefrestLog.d(TAG, "want to Start is " + wantToStart + " , Api Level is : " + SDK_INT);
     }
 
-    public void unRegister() {
+    public void unregisterWatchAppLifeCycle() {
         ((Application) context).unregisterActivityLifecycleCallbacks(befrestAppLifeCycle);
     }
 

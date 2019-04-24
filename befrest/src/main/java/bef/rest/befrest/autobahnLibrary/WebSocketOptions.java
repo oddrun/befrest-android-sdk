@@ -68,7 +68,7 @@ public class WebSocketOptions {
     *
     * @return           True, iff TCP No-Delay is enabled.
     */
-   boolean getTcpNoDelay() {
+   public boolean getTcpNoDelay() {
       return mTcpNoDelay;
    }
 
@@ -79,7 +79,7 @@ public class WebSocketOptions {
     *
     * @return           Socket receive timeout in ms.
     */
-   int getSocketConnectTimeout() {
+   public int getSocketConnectTimeout() {
       return mSocketConnectTimeout;
    }
 

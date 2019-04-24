@@ -37,7 +37,7 @@ import bef.rest.befrest.utils.NameValuePair;
  * background thread) so that it can be formatted and sent out on the
  * underlying TCP socket.
  */
-class WebSocketWriter extends Handler {
+public class WebSocketWriter extends Handler {
 
     private final static String CRLF = "\r\n";
     private final Random mRng = new Random();
@@ -57,7 +57,7 @@ class WebSocketWriter extends Handler {
      * @param socket  The socket channel created on foreground thread.
      * @param options WebSockets connection options.
      */
-    WebSocketWriter(Looper looper, Handler master, Socket socket, WebSocketOptions options) throws IOException {
+    public WebSocketWriter(Looper looper, Handler master, Socket socket, WebSocketOptions options) throws IOException {
         super(looper);
         mLooper = looper;
         mMaster = master;
@@ -100,7 +100,7 @@ class WebSocketWriter extends Handler {
      *                Message  or another type which then needs to be handled within
      *                processAppMessage() (in a class derived from this class).
      */
-    void forward(Object message) {
+    public void forward(Object message) {
         if (!mActive) {
             return;
         }
@@ -202,12 +202,12 @@ class WebSocketWriter extends Handler {
      */
     private void sendClose(WebSocketMessage.Close message) throws IOException, WebSocketException {
 
-        if (message.mCode > 0) {
+        if (message.code > 0) {
 
             byte[] payload;
 
-            if (message.mReason != null && !message.mReason.equals("")) {
-                byte[] pReason = message.mReason.getBytes("UTF-8");
+            if (message.reason != null && !message.reason.equals("")) {
+                byte[] pReason = message.reason.getBytes("UTF-8");
                 payload = new byte[2 + pReason.length];
                 System.arraycopy(pReason, 0, payload, 2, pReason.length);
             } else {
@@ -218,8 +218,8 @@ class WebSocketWriter extends Handler {
                 throw new WebSocketException("close payload exceeds 125 octets");
             }
 
-            payload[0] = (byte) ((message.mCode >> 8) & 0xff);
-            payload[1] = (byte) (message.mCode & 0xff);
+            payload[0] = (byte) ((message.code >> 8) & 0xff);
+            payload[1] = (byte) (message.code & 0xff);
 
             sendFrame(8, payload);
 
@@ -233,10 +233,10 @@ class WebSocketWriter extends Handler {
      * Send WebSockets ping.
      */
     private void sendPing(WebSocketMessage.Ping message) throws IOException, WebSocketException {
-        if (message.mPayload != null && message.mPayload.length > 125) {
+        if (message.payload != null && message.payload.length > 125) {
             throw new WebSocketException("ping payload exceeds 125 octets");
         }
-        sendFrame(9, message.mPayload);
+        sendFrame(9, message.payload);
     }
 
     /**
@@ -244,10 +244,10 @@ class WebSocketWriter extends Handler {
      * but Pongs are only send in response to a Ping from the peer.
      */
     private void sendPong(WebSocketMessage.Pong message) throws IOException, WebSocketException {
-        if (message.mPayload != null && message.mPayload.length > 125) {
+        if (message.payload != null && message.payload.length > 125) {
             throw new WebSocketException("pong payload exceeds 125 octets");
         }
-        sendFrame(10, message.mPayload);
+        sendFrame(10, message.payload);
     }
 
     /**

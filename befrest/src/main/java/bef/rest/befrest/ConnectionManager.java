@@ -51,7 +51,6 @@ public class ConnectionManager extends Handler {
     private SocketCallBacks socketCallBacks;
     private boolean refreshRequested;
     private boolean restartInProgress;
-    private int currentPingId = 0;
     private MessageIdPersister lastReceivedMessages;
     private PowerManager.WakeLock wakeLock;
     private long lastPingSetTime;
@@ -113,8 +112,8 @@ public class ConnectionManager extends Handler {
     private void serverCloseMessage(WebSocketMessage.Message msg) {
         BefrestLog.e(TAG, "ServerCloseMessage: ");
         WebSocketMessage.Close close = (WebSocketMessage.Close) msg;
-        final int closeCode = (close.mCode == 1000) ? CLOSE_NORMAL : CLOSE_CONNECTION_LOST;
-        disconnectAndNotify(closeCode, close.mReason);
+        final int closeCode = (close.code == 1000) ? CLOSE_NORMAL : CLOSE_CONNECTION_LOST;
+        disconnectAndNotify(closeCode, close.reason);
     }
 
     private void serverTextMessage(WebSocketMessage.Message msg) {
@@ -163,7 +162,7 @@ public class ConnectionManager extends Handler {
     private void serverPongMessage(WebSocketMessage.Message msg) {
         BefrestLog.i(TAG, "ServerPongMessage: server response to Ping Message");
         WebSocketMessage.Pong pong = (WebSocketMessage.Pong) msg;
-        Pong(new String(pong.mPayload, Charset.defaultCharset()));
+        Pong(new String(pong.payload, Charset.defaultCharset()));
     }
 
     private void Pong(String pongData) {
@@ -183,7 +182,9 @@ public class ConnectionManager extends Handler {
     }
 
     private boolean isValidPong(String pongData) {
-        return (PING_DATA_PREFIX + currentPingId).equals(pongData);
+        // todo: Generate a random ping payload and store it in a fixed size list.
+        // Verify if the received pong payload exists in the sent ping payloads list
+        return (PING_DATA_PREFIX).equals(pongData);
     }
 
     private void setNextPingToSendInFuture() {
@@ -216,6 +217,7 @@ public class ConnectionManager extends Handler {
                 disconnect();
                 break;
             case STOP:
+                disconnect();
                 looper.quit();
                 break;
         }
@@ -236,11 +238,8 @@ public class ConnectionManager extends Handler {
         BefrestLog.v(TAG, "Ping Server Request");
         lastPingSetTime = System.currentTimeMillis();
         setupRestart();
-        currentPingId = (currentPingId + 1) % 5;
-        String payload = PING_DATA_PREFIX + currentPingId;
         socketHelper.writeOnWebSocket(
-                new WebSocketMessage.Ping(payload.getBytes(Charset.defaultCharset()))
-        );
+                new WebSocketMessage.Ping(PING_DATA_PREFIX.getBytes(Charset.defaultCharset())));
     }
 
     private void revisePinging() {
@@ -318,10 +317,7 @@ public class ConnectionManager extends Handler {
             socketHelper.joinWriter();
             socketHelper.joinWriter();
             socketHelper.joinReader();
-        } catch (InterruptedException ignored) {
-
         } catch (Exception ignored) {
-
         }
         BefrestLog.i(TAG, "disconnect finish");
     }

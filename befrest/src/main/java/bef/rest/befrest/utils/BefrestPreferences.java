@@ -32,7 +32,6 @@ public class BefrestPreferences {
     static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
 
-
     public static SharedPreferences getPrefs() {
         return Befrest.getInstance().getContext().
                 getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);

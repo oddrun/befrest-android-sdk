@@ -35,7 +35,7 @@ public final class BefrestMessage implements Parcelable {
         }
     }
 
-    @SuppressWarnings("unused")
+
     private void reportCorruptedMessageAnomaly(Context c, Exception e) {
         //todo report anomaly later
     }

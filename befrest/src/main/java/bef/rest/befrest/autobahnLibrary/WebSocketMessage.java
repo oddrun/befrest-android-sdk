@@ -25,20 +25,20 @@ public class WebSocketMessage {
 
    }
 
-   static class Quit extends Message {
+    public static class Quit extends Message {
    }
 
 
-   static class ClientHandshake extends Message {
+    public static class ClientHandshake extends Message {
 
       String mHost;
-      String mPath;
-      String mQuery;
+        public String mPath;
+        public String mQuery;
       String mOrigin;
-      String[] mSubProtocols;
-      List<NameValuePair> mHeaderList;
+        public String[] mSubProtocols;
+        public List<NameValuePair> mHeaderList;
 
-      ClientHandshake(String host) {
+        public ClientHandshake(String host) {
          mHost = host;
          mPath = "/";
          mOrigin = null;
@@ -127,33 +127,33 @@ public class WebSocketMessage {
 
    public static class Close extends Message {
 
-      public int mCode;
-      public String mReason;
+       public int code;
+       public String reason;
 
       Close(int code, String reason) {
-         mCode = code;
-         mReason = reason;
+          this.code = code;
+          this.reason = reason;
       }
    }
 
    /// WebSockets ping to send or received.
    public static class Ping extends Message {
 
-      byte[] mPayload;
+       byte[] payload;
 
       public Ping(byte[] payload) {
-         mPayload = payload;
+          this.payload = payload;
       }
    }
 
    /// WebSockets pong to send or received.
    public static class Pong extends Message {
 
-      public byte[] mPayload;
+       public byte[] payload;
 
 
       Pong(byte[] payload) {
-         mPayload = payload;
+          this.payload = payload;
       }
    }
 

@@ -14,7 +14,7 @@ public class SDKConst {
     static final String KEEP_PINGING = "KEEP_PINGING";
 
     public static final int[] PING_INTERVAL = {30 * 1000, 90 * 1000, 125 * 1000};
-    public static final int PING_TIMEOUT = 5 * 1000;
+    public static final int PING_TIMEOUT = 3 * 1000;
     static final int[] RETRY_INTERVAL = {0, 2 * 1000, 5 * 1000, 10 * 1000, 18 * 1000, 40 * 1000, 100 * 1000, 240 * 1000};
     static final int[] AuthProblemBroadcastDelay = {0, 60 * 1000, 240 * 1000, 600 * 1000};
     public static final String PING_DATA_PREFIX = String.valueOf((int) (Math.random() * 9999));
