@@ -2,7 +2,6 @@ package bef.rest.befrest.utils;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -18,7 +17,6 @@ import android.util.Base64;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Comparator;
-import java.util.List;
 
 import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectivityChangeReceiver;
@@ -118,21 +116,9 @@ public class Util {
         return AuthProblemBroadcastDelay[index];
     }
 
-    public static boolean isAppOnForeground() {
-        ActivityManager activityManager = (ActivityManager) Befrest.getInstance().getContext()
-                .getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> appProcesses = activityManager.getRunningAppProcesses();
-        if (appProcesses == null) {
-            return false;
-        }
-        final String packageName = Befrest.getInstance().getContext().getPackageName();
-        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
-            if (appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-                    && appProcess.processName.equals(packageName)) {
-                return true;
-            }
-        }
-        return false;
+
+    public static String getRandomNumber() {
+        return String.valueOf((int) (Math.random() * 11000));
     }
 
     @SuppressLint("InvalidWakeLockTag")

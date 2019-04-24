@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 import javax.net.ssl.SSLException;
 
@@ -35,14 +38,15 @@ import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
 import static bef.rest.befrest.utils.SDKConst.HANDSHAKE_TIMEOUT_MESSAGE;
 import static bef.rest.befrest.utils.SDKConst.PING;
-import static bef.rest.befrest.utils.SDKConst.PING_DATA_PREFIX;
 import static bef.rest.befrest.utils.SDKConst.PING_INTERVAL;
 import static bef.rest.befrest.utils.SDKConst.PING_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.PING_TIME_OUT_MESSAGE;
 import static bef.rest.befrest.utils.Util.acquireConnectWakeLock;
+import static bef.rest.befrest.utils.Util.getRandomNumber;
 
 public class ConnectionManager extends Handler {
 
+    private static final int PING_ID_LIST_SIZE = 20;
     private String TAG = ConnectionManager.class.getSimpleName();
     private Looper looper;
     private SocketHelper socketHelper;
@@ -54,11 +58,12 @@ public class ConnectionManager extends Handler {
     private MessageIdPersister lastReceivedMessages;
     private PowerManager.WakeLock wakeLock;
     private long lastPingSetTime;
+    private List<String> pingIdList = new ArrayList<>(10);
 
-    ConnectionManager(Looper looper, SocketCallBacks wsHandler) {
+    ConnectionManager(Looper looper, SocketCallBacks socketCallback) {
         super(looper);
         this.looper = looper;
-        this.socketCallBacks = wsHandler;
+        this.socketCallBacks = socketCallback;
         this.appContext = Befrest.getInstance().getContext().getApplicationContext();
         lastReceivedMessages = new MessageIdPersister();
         socketHelper = new SocketHelper(this);
@@ -167,7 +172,7 @@ public class ConnectionManager extends Handler {
 
     private void Pong(String pongData) {
         BefrestLog.v(TAG, "Pong: process on pongData Message");
-        boolean isValid = isValidPong(pongData);
+        boolean isValid = isPongValid(pongData);
         if (!isValid) return;
         BefrestLog.v(TAG, "pong data with data : " + pongData + " is valid");
         cancelRestart();
@@ -181,10 +186,9 @@ public class ConnectionManager extends Handler {
         socketCallBacks.onConnectionRefreshed();
     }
 
-    private boolean isValidPong(String pongData) {
-        // todo: Generate a random ping payload and store it in a fixed size list.
-        // Verify if the received pong payload exists in the sent ping payloads list
-        return (PING_DATA_PREFIX).equals(pongData);
+    private boolean isPongValid(String pongData) {
+        return pingIdList.remove(pongData);
+
     }
 
     private void setNextPingToSendInFuture() {
@@ -239,7 +243,21 @@ public class ConnectionManager extends Handler {
         lastPingSetTime = System.currentTimeMillis();
         setupRestart();
         socketHelper.writeOnWebSocket(
-                new WebSocketMessage.Ping(PING_DATA_PREFIX.getBytes(Charset.defaultCharset())));
+                new WebSocketMessage.Ping(String.valueOf(generatePingId()).getBytes(Charset.defaultCharset())));
+    }
+
+
+    private String generatePingId() {
+        String pingId;
+        do {
+            pingId = getRandomNumber();
+        } while (pingIdList.contains(pingId));
+        if (pingIdList.size() >= PING_ID_LIST_SIZE)
+            pingIdList.remove(0);
+        pingIdList.add(pingId);
+        BefrestLog.i(TAG, String.format(Locale.US,
+                "new Ping id is %s and pingIdList size is %d", pingId, pingIdList.size()));
+        return pingId;
     }
 
     private void revisePinging() {
