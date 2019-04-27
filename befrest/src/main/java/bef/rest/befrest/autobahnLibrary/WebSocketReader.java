@@ -28,6 +28,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import bef.rest.befrest.utils.Utf8Validator;
 
@@ -499,6 +501,7 @@ public class WebSocketReader extends Thread {
                     }
                 }
 
+                Map<String, String> handshakeParams = parseHttpHeaders(Arrays.copyOfRange(headers, 1, headers.length));
                 mMessageData = Arrays.copyOfRange(mMessageData, pos + 4, mMessageData.length + pos + 4);
                 mPosition -= pos + 4;
 
@@ -519,6 +522,20 @@ public class WebSocketReader extends Thread {
             }
         }
         return res;
+    }
+
+    private Map<String, String> parseHttpHeaders(String[] httpResponse) {
+        Map<String, String> headers = new HashMap<>();
+        for (String line : httpResponse) {
+            if (line.length() > 0) {
+                String[] h = line.split(": ");
+                if (h.length == 2) {
+                    headers.put(h[0], h[1]);
+                }
+            }
+        }
+
+        return headers;
     }
 
     private Pair<Integer, String> parseHttpStatus(String statusLine) {
