@@ -1,6 +1,5 @@
 package bef.rest.befrest.befrest;
 
-import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -21,22 +20,22 @@ public final class BefrestMessage implements Parcelable {
     private String msgId;
     private boolean isCorrupted;
 
-    public BefrestMessage(Context appContext, String rawMsg) {
+    public BefrestMessage(String rawMsg) {
         try {
             JSONObject jsObject = new JSONObject(rawMsg);
             parseMessageV2(jsObject);
         } catch (Exception e) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(appContext, e);
+            reportCorruptedMessageAnomaly(e);
         }
         if (type == null || timeStamp == null || data == null) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(appContext, null);
+            reportCorruptedMessageAnomaly(null);
         }
     }
 
 
-    private void reportCorruptedMessageAnomaly(Context c, Exception e) {
+    private void reportCorruptedMessageAnomaly(Exception e) {
         //todo report anomaly later
     }
 

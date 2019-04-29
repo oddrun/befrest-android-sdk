@@ -14,6 +14,7 @@ import java.util.List;
 
 import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
 import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
@@ -21,6 +22,7 @@ import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
 import bef.rest.befrest.utils.Util;
 
+import static bef.rest.befrest.utils.SDKConst.AuthProblemBroadcastDelay;
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTION_CHANGED;
@@ -47,11 +49,10 @@ import static bef.rest.befrest.utils.SDKConst.SDK_INT;
 import static bef.rest.befrest.utils.SDKConst.SERVICE_STOPPED;
 import static bef.rest.befrest.utils.SDKConst.TIME_PER_MESSAGE_IN_BATH_MODE;
 import static bef.rest.befrest.utils.SDKConst.UNAUTHORIZED;
-import static bef.rest.befrest.utils.SDKConst.prevAuthProblems;
 import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 import static bef.rest.befrest.utils.Util.getIntentEvent;
 import static bef.rest.befrest.utils.Util.getNextReconnectInterval;
-import static bef.rest.befrest.utils.Util.getSendOnAuthorizeBroadcastDelay;
+
 
 public class PushService extends Service implements SocketCallBacks {
 
@@ -65,6 +66,7 @@ public class PushService extends Service implements SocketCallBacks {
     private List<BefrestMessage> receivedMessages = new ArrayList<>();
     private boolean isBachReceiveMode;
     private int batchSize;
+    private int prevAuthProblems = 0;
 
     @Override
     public void onStart(Intent intent, int startId) {
@@ -87,6 +89,7 @@ public class PushService extends Service implements SocketCallBacks {
     public int onStartCommand(Intent intent, int flags, int startId) {
         BefrestLog.v(TAG, "onStartCommand : with Intent : " + getIntentEvent(intent));
         handleEvent(getIntentEvent(intent));
+        Befrest.getInstance().setServiceRunning(true);
         return SDK_INT >= OREO_SDK_INT ? START_NOT_STICKY : START_STICKY;
     }
 
@@ -142,6 +145,13 @@ public class PushService extends Service implements SocketCallBacks {
         setupRetryMode(getSendOnAuthorizeBroadcastDelay());
         prevAuthProblems++;
         BefrestLog.w(TAG, "Authorize Problem Happen");
+    }
+
+    public int getSendOnAuthorizeBroadcastDelay() {
+        int index = prevAuthProblems < AuthProblemBroadcastDelay.length
+                ? prevAuthProblems
+                : AuthProblemBroadcastDelay.length - 1;
+        return AuthProblemBroadcastDelay[index];
     }
 
     private void setupRetryMode(int interval) {
@@ -213,14 +223,13 @@ public class PushService extends Service implements SocketCallBacks {
         connectionManager = null;
         BefrestLog.w(TAG, "------------------------onDestroy: Finish------------------------");
         super.onDestroy();
-        Befrest.getInstance().setServiceRunning(false);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         if (SDK_INT < OREO_SDK_INT) {
             BefrestLog.i(TAG, "onTaskRemoved : ");
-            BefrestContract.getInstance().setAlarmService(this);
+            BefrestContract.getInstance().setAlarmService();
         } else {
             Befrest.getInstance().unregisterWatchAppLifeCycle();
             stopSelf();
@@ -240,10 +249,12 @@ public class PushService extends Service implements SocketCallBacks {
         prevAuthProblems = 0;
         onBefrestConnect();
         cancelRetryMode();
+        Befrest.getInstance().setBefrestConnectionMode(BefrestConnectionMode.CONNECTED);
     }
 
     @Override
     public void onClose(int code, String reason) {
+        Befrest.getInstance().setBefrestConnectionMode(BefrestConnectionMode.DISCONNECTED);
         BefrestLog.w(TAG, "onClose: connection close with code :" + code + " and reason : " + reason);
         switch (code) {
             case CLOSE_UNAUTHORIZED:
@@ -291,12 +302,19 @@ public class PushService extends Service implements SocketCallBacks {
     }
 
     @Override
-    public void changeConnection(boolean isConnect) {
-        BefrestLog.i(TAG, "connection Changed and its state is" + (isConnect ? " connect" : " disconnect"));
-        onChangedConnection(isConnect);
+    public void onChangeConnection(BefrestConnectionMode befrestConnectionMode, String failureReason) {
+        onChangedConnection(befrestConnectionMode, failureReason);
     }
 
-    private Runnable retry = () -> Befrest.getInstance().startService(RETRY);
+    @Override
+    public void pingServer() {
+        connectionManager.forward(BefrestEvent.PING);
+    }
+
+    private Runnable retry = () -> {
+        onChangeConnection(BefrestConnectionMode.RETRY, null);
+        Befrest.getInstance().startService(RETRY);
+    };
     private Runnable finishBatchMode = () -> {
         int receivedMsgSize = receivedMessages.size();
         if (receivedMsgSize < batchSize - 1) {
@@ -311,7 +329,8 @@ public class PushService extends Service implements SocketCallBacks {
 
     /**
      * this method called when new Message(s) received from Server
-     *<br>
+     * <br>
+     *
      * @param messages new Messages that come from Server
      *                 call super() if you want receive message from Receiver(s)
      */
@@ -326,12 +345,14 @@ public class PushService extends Service implements SocketCallBacks {
     /**
      * this method called when Connection has been changed
      *
-     * @param isConnect true means connection is live and false means connection is lost
-     *                  call super if you want to receive connection change in receiver
+     * @param connectionMode has three state<br>
+     *                       CONNECTED notify client that Befrest is connect<br>
+     *                       DISCONNECTED notify client that Befrest is disconnect<br>
+     *                       RETRY notify client that Befrest try to connect again
      */
-    protected void onChangedConnection(boolean isConnect) {
+    protected void onChangedConnection(BefrestConnectionMode connectionMode, String failureReason) {
         Bundle b = new Bundle(1);
-        b.putBoolean(KEY_MESSAGE_PASSED, isConnect);
+        b.putSerializable(KEY_MESSAGE_PASSED, connectionMode);
         BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
     }
 
@@ -351,7 +372,6 @@ public class PushService extends Service implements SocketCallBacks {
      * <p>
      * call super() if you want to receive this callback also in your broadcast receivers.
      */
-
     protected void onBefrestConnect() {
         BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
     }

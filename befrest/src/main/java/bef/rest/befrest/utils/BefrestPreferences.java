@@ -25,7 +25,7 @@ public class BefrestPreferences {
 
     private static String SHARED_PREFERENCES_NAME = "rest.bef.SHARED_PREFERENCES";
     public static final String PREF_U_ID = "PREF_U_ID";
-    private static final String PREF_AUTH = "PREF_AUTH";
+    public static final String PREF_AUTH = "PREF_AUTH";
     public static final String PREF_CH_ID = "PREF_CH_ID";
     private static final String PREF_SERVICE_CHOOSER = "PREF_SERVICE_CHOOSER";
     public static final String PREF_TOPICS = "PREF_TOPICS";
@@ -61,16 +61,16 @@ public class BefrestPreferences {
         editor.apply();
     }
 
-    static void saveLong(String key, long value) {
+    public static void saveLong(String key, long value) {
         Editor editor = getPrefs().edit();
         editor.putLong(key, value);
         editor.apply();
     }
 
-    static void saveToPrefs(long uId, String AUTH, String chId) {
+    public static void saveToPrefs(int uId, String AUTH, String chId) {
         Editor prefEditor = Befrest.getInstance().getContext().
                 getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).edit();
-        prefEditor.putLong(PREF_U_ID, uId);
+        prefEditor.putInt(PREF_U_ID, uId);
         prefEditor.putString(PREF_AUTH, AUTH);
         prefEditor.putString(PREF_CH_ID, chId);
         prefEditor.apply();

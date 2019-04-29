@@ -11,6 +11,7 @@ import android.support.annotation.RequiresApi;
 import java.util.Arrays;
 import java.util.List;
 
+import bef.rest.befrest.BackgroundService;
 import bef.rest.befrest.PushService;
 import bef.rest.befrest.clientData.ClientData;
 import bef.rest.befrest.utils.BefrestLog;
@@ -25,8 +26,11 @@ public class Befrest implements BefrestAppDelegate {
     private static final String TAG = "Befrest";
     private Context context;
     private Class<?> pushService;
+    private Class<?> backgroundService;
     private boolean isBefrestStart;
     private boolean wantToStart;
+    private BefrestConnectionMode befrestConnectionMode = BefrestConnectionMode.DISCONNECTED;
+    private int buildNumber = 1;
 
     private BefrestAppLifeCycle befrestAppLifeCycle;
     private boolean isServiceRunning = false;
@@ -42,11 +46,35 @@ public class Befrest implements BefrestAppDelegate {
 
     private Befrest() {
         pushService = PushService.class;
+        backgroundService = BackgroundService.class;
     }
 
     public static void init(Context context, int uid, String authToken, String chId) {
-        Befrest.getInstance().setContext(context);
+        Befrest.getInstance().setContext(context.getApplicationContext());
         ClientData.getInstance().setData(uid, chId, authToken);
+    }
+
+    public static void init(Context context) {
+        Befrest.getInstance().setContext(context);
+    }
+
+    public void setUId(int uid) {
+        ClientData.getInstance().setUId(uid);
+    }
+
+    public void setChId(String chId) {
+        ClientData.getInstance().setChId(chId);
+    }
+
+    public void setAuthToken(String authToken) {
+        ClientData.getInstance().setAuthToken(authToken);
+    }
+
+    public Befrest setData(int uId, String chId, String authToken) {
+        setUId(uId);
+        setChId(chId);
+        setAuthToken(authToken);
+        return this;
     }
 
     @SuppressWarnings("UnusedReturnValue")
@@ -75,6 +103,18 @@ public class Befrest implements BefrestAppDelegate {
             BefrestLog.w(TAG, "can not assign customPushService after service run");
         } else {
             this.pushService = customPushService;
+        }
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public Befrest setCustomBackgroundService(Class<? extends BackgroundService> customPushService) {
+        if (customPushService == null)
+            BefrestLog.w(TAG, "custom background service can not be null");
+        else if (isMyServiceRunning(pushService) && !customPushService.equals(pushService)) {
+            BefrestLog.w(TAG, "can not assign custom background service after service run");
+        } else {
+            this.backgroundService = customPushService;
         }
         return this;
     }
@@ -195,6 +235,7 @@ public class Befrest implements BefrestAppDelegate {
 
     @Override
     public void onAppForeground() {
+        BefrestLog.i(TAG, "application is in foreground   currently");
         if (!isBefrestStart && wantToStart) {
             if (SDK_INT >= OREO_SDK_INT) {
                 JobServiceManager.getInstance().cancelJob();
@@ -245,5 +286,21 @@ public class Befrest implements BefrestAppDelegate {
 
     public void setServiceRunning(boolean serviceRunning) {
         isServiceRunning = serviceRunning;
+    }
+
+    public Class<?> getBackgroundService() {
+        return backgroundService;
+    }
+
+    public void setBackgroundService(Class<?> backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    public BefrestConnectionMode getBefrestConnectionMode() {
+        return befrestConnectionMode;
+    }
+
+    public void setBefrestConnectionMode(BefrestConnectionMode befrestConnectionMode) {
+        this.befrestConnectionMode = befrestConnectionMode;
     }
 }

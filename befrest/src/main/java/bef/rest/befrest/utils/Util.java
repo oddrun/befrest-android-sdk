@@ -22,7 +22,6 @@ import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectivityChangeReceiver;
 import bef.rest.befrest.befrest.BefrestMessage;
 
-import static bef.rest.befrest.utils.SDKConst.AuthProblemBroadcastDelay;
 import static bef.rest.befrest.utils.SDKConst.BROADCAST_SENDING_PERMISSION_POSTFIX;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.KEEP_PINGING;
@@ -34,7 +33,6 @@ import static bef.rest.befrest.utils.SDKConst.RETRY;
 import static bef.rest.befrest.utils.SDKConst.RETRY_INTERVAL;
 import static bef.rest.befrest.utils.SDKConst.SERVICE_STOPPED;
 import static bef.rest.befrest.utils.SDKConst.connectWakeLockName;
-import static bef.rest.befrest.utils.SDKConst.prevAuthProblems;
 import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 
 public class Util {
@@ -108,14 +106,6 @@ public class Util {
     public static int getNextReconnectInterval() {
         return RETRY_INTERVAL[prevFailedConnectTries < RETRY_INTERVAL.length ? prevFailedConnectTries : RETRY_INTERVAL.length - 1];
     }
-
-    public static int getSendOnAuthorizeBroadcastDelay() {
-        int index = prevAuthProblems < AuthProblemBroadcastDelay.length
-                ? prevAuthProblems
-                : AuthProblemBroadcastDelay.length - 1;
-        return AuthProblemBroadcastDelay[index];
-    }
-
 
     public static String getRandomNumber() {
         return String.valueOf((int) (Math.random() * 11000));

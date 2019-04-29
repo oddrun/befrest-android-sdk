@@ -16,6 +16,7 @@ import java.util.List;
 
 import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
 import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
@@ -34,9 +35,11 @@ import static bef.rest.befrest.utils.SDKConst.CLOSE_NORMAL;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
+import static bef.rest.befrest.utils.SDKConst.CONNECTION_REFRESHED;
 import static bef.rest.befrest.utils.SDKConst.KEY_MESSAGE_PASSED;
 import static bef.rest.befrest.utils.SDKConst.PUSH;
 import static bef.rest.befrest.utils.SDKConst.TIME_PER_MESSAGE_IN_BATH_MODE;
+import static bef.rest.befrest.utils.SDKConst.UNAUTHORIZED;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class BackgroundService extends JobService implements SocketCallBacks {
@@ -47,7 +50,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     private HandlerThread befrestHandler;
     private ConnectionManager connectionManager;
     private Handler messageHandler;
-    private boolean isConnected;
     private List<BefrestMessage> receivedMessages = new ArrayList<>();
     private boolean isBachReceiveMode;
     private int batchSize;
@@ -55,6 +57,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     @Override
     public boolean onStartJob(JobParameters params) {
         BefrestLog.d(TAG, "onStartJob: job started");
+        Befrest.getInstance().setServiceRunning(false);
         parameters = params;
         init();
         connectIfNetworkAvailable();
@@ -117,8 +120,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     @Override
     public void onOpen() {
         BefrestLog.v(TAG, "onOpen: socket is open");
-        mainThreadHandler.post(befrestConnected);
-        isConnected = true;
+        onBefrestConnect();
     }
 
     @Override
@@ -126,6 +128,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
         BefrestLog.w(TAG, "onClose: connection close with code :" + code + " and reason : " + reason);
         switch (code) {
             case CLOSE_UNAUTHORIZED:
+                onAuthorizeProblem();
                 break;
             case CLOSE_CANNOT_CONNECT:
             case CLOSE_CONNECTION_LOST:
@@ -144,7 +147,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     @Override
     public void onConnectionRefreshed() {
-
+        connectionRefreshed();
     }
 
     @Override
@@ -167,9 +170,14 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     }
 
     @Override
-    public void changeConnection(boolean isConnect) {
-        isConnected = isConnect;
-        mainThreadHandler.post(onConnectionChange);
+    public void onChangeConnection(BefrestConnectionMode befrestConnectionMode, String failureReason) {
+        onChangedConnection(befrestConnectionMode);
+
+    }
+
+    @Override
+    public void pingServer() {
+
     }
 
     private int getBatchTime() {
@@ -185,15 +193,17 @@ public class BackgroundService extends JobService implements SocketCallBacks {
         mainThreadHandler.post(() -> onPushReceived(msgs));
     }
 
+    /**
+     * this method called when new Message(s) received from Serve <br>
+     *
+     * @param messages new Messages that come from Server
+     *                 call super() if you want receive message from Receiver(s)
+     */
     protected void onPushReceived(ArrayList<BefrestMessage> messages) {
         Parcelable[] data = new BefrestMessage[messages.size()];
         Bundle b = new Bundle(1);
         b.putParcelableArray(KEY_MESSAGE_PASSED, messages.toArray(data));
         BefrestContract.getInstance().sendBefrestBroadcast(this, PUSH, b);
-    }
-
-    private void onBefrestConnected() {
-        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
     }
 
     private void postFinishBachModeAgain() {
@@ -218,10 +228,42 @@ public class BackgroundService extends JobService implements SocketCallBacks {
             handleReceivedMessages();
     };
 
-    private Runnable befrestConnected = this::onBefrestConnected;
-    private Runnable onConnectionChange = () -> {
+
+    /**
+     * this method called when Connection has been changed
+     *
+     * @param connectionMode has three state :<br>
+     *                       CONNECTED mean befrest is connect<br>
+     *                       DISCONNECTED mean befrest is disconnect<br>
+     *                       RETRY mean befrest try to connect
+     */
+    protected void onChangedConnection(BefrestConnectionMode connectionMode) {
         Bundle b = new Bundle(1);
-        b.putBoolean(KEY_MESSAGE_PASSED, isConnected);
+        b.putSerializable(KEY_MESSAGE_PASSED, connectionMode);
         BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTION_CHANGED, b);
-    };
+    }
+
+    /**
+     * Called when there is a problem with your Authentication token.<br>
+     * The Service encounters authorization errors while trying to connect to Befrest servers.<br>
+     * The method is called in main thread of the application (UiThread)<br>
+     * call super() if you want to receive this callback also in your broadcast receivers.
+     */
+    protected void onAuthorizeProblem() {
+        BefrestContract.getInstance().sendBefrestBroadcast(this, UNAUTHORIZED, null);
+    }
+
+    /**
+     * is called when Befrest Connects to its server.
+     * The method is called in main thread of the application (UiThread)
+     * <p>
+     * call super() if you want to receive this callback also in your broadcast receivers.
+     */
+    protected void onBefrestConnect() {
+        BefrestContract.getInstance().sendBefrestBroadcast(this, BEFREST_CONNECTED, null);
+    }
+
+    protected void connectionRefreshed() {
+        BefrestContract.getInstance().sendBefrestBroadcast(this, CONNECTION_REFRESHED, null);
+    }
 }

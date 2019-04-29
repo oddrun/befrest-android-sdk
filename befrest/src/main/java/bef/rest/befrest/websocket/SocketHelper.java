@@ -24,19 +24,20 @@ public class SocketHelper {
     private WebSocketWriter writer;
     private HandlerThread writerThread;
     private Handler handler;
-    private UrlConnection wrapper;
+    private UrlConnection urlConnection;
 
     public SocketHelper(Handler handler) {
         this.handler = handler;
-        this.wrapper = UrlConnection.getInstance();
     }
 
     public void createSocket() throws IOException {
-        String host = wrapper.getHost();
-        int port = wrapper.getPort();
-        WebSocketOptions webSocketOptions = wrapper.getOptions();
-        if (wrapper.getScheme().equals("wss")) {
+        this.urlConnection = UrlConnection.getInstance();
+        String host = urlConnection.getHost();
+        int port = urlConnection.getPort();
+        WebSocketOptions webSocketOptions = urlConnection.getOptions();
+        if (urlConnection.getScheme().equals("wss")) {
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            System.setProperty("jdk.httpclient.keepalive.timeout", "99999");
             SSLSocket secSoc = (SSLSocket) factory.createSocket();
             secSoc.setUseClientMode(true);
             secSoc.connect(new InetSocketAddress(host, port), webSocketOptions.getSocketConnectTimeout());
@@ -54,7 +55,7 @@ public class SocketHelper {
         writerThread = new HandlerThread("WriterThread");
         writerThread.start();
         if (socket != null)
-            writer = new WebSocketWriter(writerThread.getLooper(), handler, socket, wrapper.getOptions());
+            writer = new WebSocketWriter(writerThread.getLooper(), handler, socket, urlConnection.getOptions());
         else {
             createSocket();
             BefrestLog.d(TAG, "socket is null and Writer Thread cant create");
@@ -63,7 +64,7 @@ public class SocketHelper {
 
     private void createReader() throws IOException {
         if (socket != null) {
-            reader = new WebSocketReader(handler, socket, wrapper.getOptions(), "ReaderThread");
+            reader = new WebSocketReader(handler, socket, urlConnection.getOptions(), "ReaderThread");
             reader.start();
         } else {
             BefrestLog.d(TAG, "Socket is null and Reader Thread cant create");
@@ -73,11 +74,11 @@ public class SocketHelper {
     public void startWebSocketHandshake() {
         BefrestLog.i(TAG, "startWebSocketHandShake");
         WebSocketMessage.ClientHandshake hs = new WebSocketMessage.ClientHandshake(
-                wrapper.getHost() + ":" + wrapper.getPort());
-        hs.mPath = wrapper.getPath();
-        hs.mQuery = wrapper.getQuery();
-        hs.mSubProtocols = wrapper.getSubProtocol();
-        hs.mHeaderList = wrapper.getHeaders();
+                urlConnection.getHost() + ":" + urlConnection.getPort());
+        hs.mPath = urlConnection.getPath();
+        hs.mQuery = urlConnection.getQuery();
+        hs.mSubProtocols = urlConnection.getSubProtocol();
+        hs.mHeaderList = urlConnection.getHeaders();
         writeOnWebSocket(hs);
     }
 
@@ -100,8 +101,22 @@ public class SocketHelper {
     public void freeReader() {
         if (reader != null)
             reader.quit();
+
     }
 
+    public boolean isisReaderAlive() {
+        return reader.isAlive();
+    }
+
+    public void fillNull() {
+        reader = null;
+        writer = null;
+        writerThread = null;
+    }
+
+    public boolean isSocketHelperValid() {
+        return reader != null && writer != null && writerThread != null;
+    }
 
     public void joinReader() throws InterruptedException {
         if (reader != null)
@@ -115,6 +130,7 @@ public class SocketHelper {
     public void freeSocket() throws IOException {
         if (socket != null) {
             socket.close();
+            socket = null;
         }
     }
 

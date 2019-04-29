@@ -17,6 +17,7 @@
 
 package bef.rest.befrest.autobahnLibrary;
 
+import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestMessage;
 
 public interface SocketCallBacks {
@@ -28,5 +29,8 @@ public interface SocketCallBacks {
 
     void onBefrestMessage(BefrestMessage msg);
 
-    void changeConnection(boolean isConnect);
+    void onChangeConnection(BefrestConnectionMode befrestConnectionMode, String failureReason);
+
+    void pingServer();
+
 }

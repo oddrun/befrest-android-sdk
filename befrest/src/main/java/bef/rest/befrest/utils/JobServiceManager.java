@@ -9,7 +9,6 @@ import android.support.annotation.RequiresApi;
 
 import java.util.concurrent.TimeUnit;
 
-import bef.rest.befrest.BackgroundService;
 import bef.rest.befrest.befrest.Befrest;
 
 import static bef.rest.befrest.utils.SDKConst.JOB_ID;
@@ -49,7 +48,7 @@ public class JobServiceManager {
         if (!isJobExist()) {
             BefrestLog.i(TAG, "setupJob  ");
             JobInfo jobInfo = new JobInfo.Builder(JOB_ID,
-                    new ComponentName(Befrest.getInstance().getContext(), BackgroundService.class))
+                    new ComponentName(Befrest.getInstance().getContext(), Befrest.getInstance().getBackgroundService()))
                     .setPeriodic(TimeUnit.MINUTES.toMillis(15), TimeUnit.MINUTES.toMillis(5))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setPersisted(true)

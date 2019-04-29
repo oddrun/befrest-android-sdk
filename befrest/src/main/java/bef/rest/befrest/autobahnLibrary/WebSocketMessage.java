@@ -21,140 +21,149 @@ import bef.rest.befrest.utils.NameValuePair;
  ******************************************************************************/
 public class WebSocketMessage {
 
-   public static class Message {
+    public static class Message {
 
-   }
+    }
 
     public static class Quit extends Message {
-   }
+    }
 
 
     public static class ClientHandshake extends Message {
 
-      String mHost;
+        String mHost;
         public String mPath;
         public String mQuery;
-      String mOrigin;
+        String mOrigin;
         public String[] mSubProtocols;
         public List<NameValuePair> mHeaderList;
 
         public ClientHandshake(String host) {
-         mHost = host;
-         mPath = "/";
-         mOrigin = null;
-         mSubProtocols = null;
-         mHeaderList = null;
-      }
-   }
+            mHost = host;
+            mPath = "/";
+            mOrigin = null;
+            mSubProtocols = null;
+            mHeaderList = null;
+        }
+    }
 
-   public static class AckMessage extends TextMessage{
-
-
-      public AckMessage(String payload) {
-         super(payload);
-      }
-   }
-
-   public static class ServerHandshake extends Message {
-	   boolean mSuccess;
-	   
-	   ServerHandshake(boolean success) {
-		   mSuccess = success;
-	   }
-   }
-
-   public static class ConnectionLost extends Message {
-      ConnectionLost() {
-      }
-   }
-   
-   public static class ServerError extends Message {
-	   public int mStatusCode;
-	   public String mStatusMessage;
-	   
-	   ServerError(int statusCode, String statusMessage) {
-		   mStatusCode = statusCode;
-		   mStatusMessage = statusMessage;
-	   }
-	   
-   }
-
-   public static class ProtocolViolation extends Message {
-
-      WebSocketException mException;
-
-      ProtocolViolation(WebSocketException e) {
-         mException = e;
-      }
-   }
-
-   /// An exception occurred in the WS reader or WS writer.
-   public static class Error extends Message {
-
-      Exception mException;
-
-      public Error(Exception e) {
-         mException = e;
-      }
-   }
-
-   public static class TextMessage extends Message {
-
-      public String payload;
-
-      TextMessage(String payload) {
-         this.payload = payload;
-      }
-   }
-
-   static class RawTextMessage extends Message {
-
-      byte[] mPayload;
-
-      RawTextMessage(byte[] payload) {
-         mPayload = payload;
-      }
-   }
-
-   static class BinaryMessage extends Message {
-
-      byte[] mPayload;
-
-      BinaryMessage(byte[] payload) {
-         mPayload = payload;
-      }
-   }
-
-   public static class Close extends Message {
-
-       public int code;
-       public String reason;
-
-      Close(int code, String reason) {
-          this.code = code;
-          this.reason = reason;
-      }
-   }
-
-   /// WebSockets ping to send or received.
-   public static class Ping extends Message {
-
-       byte[] payload;
-
-      public Ping(byte[] payload) {
-          this.payload = payload;
-      }
-   }
-
-   /// WebSockets pong to send or received.
-   public static class Pong extends Message {
-
-       public byte[] payload;
+    public static class AckMessage extends TextMessage {
 
 
-      Pong(byte[] payload) {
-          this.payload = payload;
-      }
-   }
+        public AckMessage(String payload) {
+            super(payload);
+        }
+    }
+
+    public static class ServerHandshake extends Message {
+        public boolean mSuccess;
+
+        ServerHandshake(boolean success) {
+            mSuccess = success;
+        }
+    }
+
+    public static class ConnectionLost extends Message {
+        ConnectionLost() {
+        }
+    }
+
+    public static class ServerError extends Message {
+        public int mStatusCode;
+        public String mStatusMessage;
+
+        ServerError(int statusCode, String statusMessage) {
+            mStatusCode = statusCode;
+            mStatusMessage = statusMessage;
+        }
+
+    }
+
+    public static class ProtocolViolation extends Message {
+
+        WebSocketException mException;
+
+        ProtocolViolation(WebSocketException e) {
+            mException = e;
+        }
+    }
+
+    /// An exception occurred in the WS reader or WS writer.
+    public static class Error extends Message {
+
+        Exception mException;
+
+        public Error(Exception e) {
+            mException = e;
+        }
+    }
+
+    public static class TextMessage extends Message {
+
+        public String payload;
+
+        TextMessage(String payload) {
+            this.payload = payload;
+        }
+    }
+
+    static class RawTextMessage extends Message {
+
+        byte[] mPayload;
+
+        RawTextMessage(byte[] payload) {
+            mPayload = payload;
+        }
+    }
+
+    static class BinaryMessage extends Message {
+
+        byte[] mPayload;
+
+        BinaryMessage(byte[] payload) {
+            mPayload = payload;
+        }
+    }
+
+    public static class Close extends Message {
+
+        public int code;
+        public String reason;
+
+        Close(int code, String reason) {
+            this.code = code;
+            this.reason = reason;
+        }
+    }
+
+    /// WebSockets ping to send or received.
+    public static class Ping extends Message {
+
+        byte[] payload;
+
+        public Ping(byte[] payload) {
+            this.payload = payload;
+        }
+    }
+
+    /// WebSockets pong to send or received.
+    public static class Pong extends Message {
+
+        public byte[] payload;
+
+
+        Pong(byte[] payload) {
+            this.payload = payload;
+        }
+    }
+
+    public static class Redirect extends Message {
+
+        public String location;
+
+        public Redirect(String location) {
+            this.location = location;
+        }
+    }
 
 }

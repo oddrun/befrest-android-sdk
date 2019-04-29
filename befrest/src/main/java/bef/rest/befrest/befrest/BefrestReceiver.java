@@ -34,13 +34,13 @@ public class BefrestReceiver extends BroadcastReceiver {
                 onBefrestConnected(context);
                 break;
             case BEFREST_CONNECTION_CHANGED:
-                onConnectionChanged(isConnect(intent));
+                onConnectionChanged(connectionMode(intent));
                 break;
         }
 
     }
 
-    public void onConnectionChanged(boolean isConnect) {
+    public void onConnectionChanged(BefrestConnectionMode connectionMode) {
 
     }
 
@@ -64,7 +64,7 @@ public class BefrestReceiver extends BroadcastReceiver {
         return bm;
     }
 
-    private boolean isConnect(Intent intent) {
-        return intent.getBooleanExtra(SDKConst.KEY_MESSAGE_PASSED, true);
+    private BefrestConnectionMode connectionMode(Intent intent) {
+        return (BefrestConnectionMode) intent.getSerializableExtra(SDKConst.KEY_MESSAGE_PASSED);
     }
 }

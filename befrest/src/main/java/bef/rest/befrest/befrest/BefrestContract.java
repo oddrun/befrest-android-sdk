@@ -20,7 +20,6 @@ import static bef.rest.befrest.utils.SDKConst.START_SERVICE_AFTER_ILLEGAL_STOP_D
 
 
 public class BefrestContract {
-
     private BefrestConnectivityChangeReceiver befrestConnectivityChangeReceiver;
 
     private BefrestContract() {
@@ -66,10 +65,11 @@ public class BefrestContract {
     }
 
 
-    public void setAlarmService(Context context) {
-        AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(context, Befrest.getInstance().getPushService()).putExtra(SERVICE_STOPPED, true);
-        PendingIntent pi = PendingIntent.getService(context, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    public void setAlarmService() {
+        Context ctx = Befrest.getInstance().getContext();
+        AlarmManager alarmMgr = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(ctx, Befrest.getInstance().getPushService()).putExtra(SERVICE_STOPPED, true);
+        PendingIntent pi = PendingIntent.getService(ctx, START_ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         alarmMgr.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + START_SERVICE_AFTER_ILLEGAL_STOP_DELAY,
                 3 * 60 * 1000, pi);

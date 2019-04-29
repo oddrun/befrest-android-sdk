@@ -87,6 +87,7 @@ public class WebSocketReader extends Thread {
 
     /**
      * Create new WebSockets background reader.
+     *
      * @param master The message handler of master (foreground thread).
      * @param socket The socket channel created on foreground thread.
      */
@@ -115,6 +116,7 @@ public class WebSocketReader extends Thread {
     /**
      * Notify the master (foreground thread) of WebSockets message received
      * and unwrapped.
+     *
      * @param message Message to send to master.
      */
     private void notify(Object message) {
@@ -248,7 +250,6 @@ public class WebSocketReader extends Thread {
 
         } else {
             /// \todo refactor this for streaming processing, incl. fail fast on invalid UTF-8 within frame already
-
             // within frame
 
             // see if we buffered complete frame
@@ -494,14 +495,23 @@ public class WebSocketReader extends Thread {
                 String[] headers = rawHeaders.split("\r\n");
                 if (headers[0].startsWith("HTTP")) {
                     Pair<Integer, String> status = parseHttpStatus(headers[0]);
-                    if (status.first >= 300) {
+                    Map<String, String> handshakeParams = parseHttpHeaders(Arrays.copyOfRange(headers, 1, headers.length));
+                    if (status.first == 302) {
+                        String s = handshakeParams.get("Location");
+                        if (s != null) {
+                            notify(new WebSocketMessage.Redirect(s));
+                            return false;
+                        } else
+                            notify(new WebSocketMessage.ServerError(status.first, status.second));
+                        serverError = true;
+                    }
+
+                    if (status.first >= 400) {
                         // Invalid status code for success connection
                         notify(new WebSocketMessage.ServerError(status.first, status.second));
                         serverError = true;
                     }
                 }
-
-                Map<String, String> handshakeParams = parseHttpHeaders(Arrays.copyOfRange(headers, 1, headers.length));
                 mMessageData = Arrays.copyOfRange(mMessageData, pos + 4, mMessageData.length + pos + 4);
                 mPosition -= pos + 4;
 
@@ -516,7 +526,6 @@ public class WebSocketReader extends Thread {
                     mState = STATE_CLOSED;
                     mStopped = true;
                 }
-
                 onHandshake(!serverError);
                 break;
             }
@@ -534,7 +543,6 @@ public class WebSocketReader extends Thread {
                 }
             }
         }
-
         return headers;
     }
 

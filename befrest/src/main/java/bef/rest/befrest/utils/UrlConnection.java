@@ -29,6 +29,10 @@ public class UrlConnection {
     }
 
     private UrlConnection() {
+        buildUrl();
+    }
+
+    private void buildUrl() {
         try {
             URI baseUri = new URI(getUrl());
             scheme = baseUri.getScheme();
@@ -112,5 +116,19 @@ public class UrlConnection {
 
     public List<NameValuePair> getHeaders() {
         return header;
+    }
+
+    public void setSubscribeUrl(String subscribeUrl) {
+        this.subscribeUrl = subscribeUrl;
+    }
+
+    public String getSubscribeUrl() {
+        return subscribeUrl;
+    }
+
+    public void followRedirect(String subscribeUrl) {
+        this.subscribeUrl = null;
+        this.subscribeUrl = subscribeUrl;
+        buildUrl();
     }
 }
