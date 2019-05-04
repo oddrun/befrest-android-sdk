@@ -51,6 +51,7 @@ public class UrlConnection {
             subProtocol = null;
         } catch (URISyntaxException e) {
             e.printStackTrace();
+            WatchSdk.reportCrash(e,null);
         }
     }
 

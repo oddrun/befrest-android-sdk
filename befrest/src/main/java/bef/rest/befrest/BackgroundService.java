@@ -22,6 +22,7 @@ import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
+import bef.rest.befrest.utils.WatchSdk;
 
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
@@ -56,6 +57,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     @Override
     public boolean onStartJob(JobParameters params) {
+        Befrest.getInstance().setContext(this);
         BefrestLog.d(TAG, "onStartJob: job started");
         Befrest.getInstance().setServiceRunning(false);
         parameters = params;
@@ -84,7 +86,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
                 try {
                     super.handleMessage(msg);
                 } catch (Exception e) {
-                    //todo handle exception
+                    WatchSdk.reportCrash(e,null);
                 }
             }
         };
@@ -111,6 +113,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
+            WatchSdk.reportCrash(e,null);
         }
         connectionManager = null;
         befrestHandler = null;

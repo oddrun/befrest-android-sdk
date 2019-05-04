@@ -6,7 +6,9 @@ import android.os.Parcelable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.Util;
+import bef.rest.befrest.utils.WatchSdk;
 
 public final class BefrestMessage implements Parcelable {
 
@@ -26,17 +28,19 @@ public final class BefrestMessage implements Parcelable {
             parseMessageV2(jsObject);
         } catch (Exception e) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(e);
+            reportCorruptedMessageAnomaly(e,rawMsg);
         }
         if (type == null || timeStamp == null || data == null) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(null);
+            reportCorruptedMessageAnomaly(new Exception("type " + type + " timeStamp : " + timeStamp
+                    + " data : " + data), rawMsg);
         }
     }
 
 
-    private void reportCorruptedMessageAnomaly(Exception e) {
-        //todo report anomaly later
+    private void reportCorruptedMessageAnomaly(Exception e, String rawMsg) {
+        WatchSdk.reportAnalytics(AnalyticsType.MALFORMED_DATA, e);
+        WatchSdk.reportCrash(e,rawMsg);
     }
 
     private void parseMessageV2(JSONObject jsObject) throws JSONException {

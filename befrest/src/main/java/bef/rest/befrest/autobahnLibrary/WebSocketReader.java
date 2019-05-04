@@ -31,7 +31,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.Utf8Validator;
+import bef.rest.befrest.utils.WatchSdk;
+
+import static bef.rest.befrest.utils.SDKConst.CLOSE_CONNECTION_LOST;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_INTERNAL_ERROR;
+import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
 
 
 /**
@@ -285,7 +291,6 @@ public class WebSocketReader extends Thread {
 
                                 byte[] ra = new byte[mFrameHeader.mPayloadLen - 2];
                                 System.arraycopy(framePayload, 2, ra, 0, mFrameHeader.mPayloadLen - 2);
-
                                 Utf8Validator val = new Utf8Validator();
                                 val.validate(ra);
                                 if (val.isInvalid()) {
@@ -501,15 +506,18 @@ public class WebSocketReader extends Thread {
                         if (s != null) {
                             notify(new WebSocketMessage.Redirect(s));
                             return false;
-                        } else
+                        } else {
                             notify(new WebSocketMessage.ServerError(status.first, status.second));
-                        serverError = true;
+                            serverError = true;
+                            WatchSdk.reportAnalytics(AnalyticsType.CANNOT_CONNECT, status.first,status.second);
+                        }
                     }
 
                     if (status.first >= 400) {
                         // Invalid status code for success connection
                         notify(new WebSocketMessage.ServerError(status.first, status.second));
                         serverError = true;
+                        WatchSdk.reportAnalytics(AnalyticsType.CANNOT_CONNECT, status.first,status.second);
                     }
                 }
                 mMessageData = Arrays.copyOfRange(mMessageData, pos + 4, mMessageData.length + pos + 4);
@@ -613,25 +621,26 @@ public class WebSocketReader extends Thread {
             } while (!mStopped);
 
         } catch (WebSocketException e) {
-
-            // wrap the exception and notify master
+            WatchSdk.reportCrash(e,null);
             notify(new WebSocketMessage.ProtocolViolation(e));
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_PROTOCOL_ERROR, "WebSocketException happen");
+            WatchSdk.reportCrash(e,null);
 
         } catch (SocketException e) {
-
+            WatchSdk.reportCrash(e,null);
             // BufferedInputStream throws when the socket is closed,
             // eat the exception if we are already in STATE_CLOSED.
             if (mState != STATE_CLOSED && !mSocket.isClosed()) {
-
-                // wrap the exception and notify master
                 notify(new WebSocketMessage.ConnectionLost());
+                WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_CONNECTION_LOST, "SocketException happen");
+                WatchSdk.reportCrash(e,null);
+
             }
 
         } catch (Exception e) {
-
-
-            // wrap the exception and notify master
-            notify(new Error(e));
+            notify(new WebSocketMessage.Error(e));
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_INTERNAL_ERROR, "Exception happen");
+            WatchSdk.reportCrash(e,null);
 
         } finally {
 

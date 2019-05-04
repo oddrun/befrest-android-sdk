@@ -93,7 +93,7 @@ public class WebSocketMessage {
 
         Exception mException;
 
-        public Error(Exception e) {
+        Error(Exception e) {
             mException = e;
         }
     }
@@ -161,7 +161,7 @@ public class WebSocketMessage {
 
         public String location;
 
-        public Redirect(String location) {
+        Redirect(String location) {
             this.location = location;
         }
     }

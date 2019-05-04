@@ -18,9 +18,11 @@ import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
+import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
 import bef.rest.befrest.utils.Util;
+import bef.rest.befrest.utils.WatchSdk;
 
 import static bef.rest.befrest.utils.SDKConst.AuthProblemBroadcastDelay;
 import static bef.rest.befrest.utils.SDKConst.BATCH_MODE_TIMEOUT;
@@ -96,6 +98,7 @@ public class PushService extends Service implements SocketCallBacks {
     public void handleEvent(String event) {
         switch (event) {
             case NETWORK_CONNECTED:
+                WatchSdk.reportAnalytics(AnalyticsType.NETWORK_CONNECTED);
             case CONNECT:
                 connectIfNetworkAvailable();
                 break;
@@ -107,6 +110,7 @@ public class PushService extends Service implements SocketCallBacks {
                 connectIfNetworkAvailable();
                 break;
             case NETWORK_DISCONNECTED:
+                WatchSdk.reportAnalytics(AnalyticsType.NETWORK_DISCONNECTED);
                 cancelRetryMode();
                 connectionManager.forward(BefrestEvent.DISCONNECT);
                 break;
@@ -168,11 +172,11 @@ public class PushService extends Service implements SocketCallBacks {
 
     private void handleReceivedMessages() {
         BefrestLog.i(TAG, "handleReceivedMessages: ");
-        final ArrayList<BefrestMessage> msgs = new ArrayList<>(receivedMessages.size());
-        msgs.addAll(receivedMessages);
+        final ArrayList<BefrestMessage> messages = new ArrayList<>(receivedMessages.size());
+        messages.addAll(receivedMessages);
         receivedMessages.clear();
-        Collections.sort(msgs, Util.comparator);
-        mainThreadHandler.post(() -> onPushReceived(msgs));
+        Collections.sort(messages, Util.comparator);
+        mainThreadHandler.post(() -> onPushReceived(messages));
     }
 
     private int getBatchTime() {
@@ -218,6 +222,7 @@ public class PushService extends Service implements SocketCallBacks {
                 }
             }
         } catch (InterruptedException e) {
+            WatchSdk.reportCrash(e,null);
             e.printStackTrace();
         }
         connectionManager = null;
@@ -304,6 +309,7 @@ public class PushService extends Service implements SocketCallBacks {
     @Override
     public void onChangeConnection(BefrestConnectionMode befrestConnectionMode, String failureReason) {
         onChangedConnection(befrestConnectionMode, failureReason);
+        WatchSdk.reportAnalytics(AnalyticsType.BEFREST_CONNECTION_CHANGE);
     }
 
     @Override
@@ -314,6 +320,7 @@ public class PushService extends Service implements SocketCallBacks {
     private Runnable retry = () -> {
         onChangeConnection(BefrestConnectionMode.RETRY, null);
         Befrest.getInstance().startService(RETRY);
+        WatchSdk.reportAnalytics(AnalyticsType.RETRY,prevFailedConnectTries);
     };
     private Runnable finishBatchMode = () -> {
         int receivedMsgSize = receivedMessages.size();

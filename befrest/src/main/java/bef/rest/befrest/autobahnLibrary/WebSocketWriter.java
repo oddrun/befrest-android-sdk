@@ -26,7 +26,9 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.Random;
 
+import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.NameValuePair;
+import bef.rest.befrest.utils.WatchSdk;
 
 
 /*
@@ -51,13 +53,15 @@ public class WebSocketWriter extends Handler {
 
     /**
      * Create new WebSockets background writer.
+     *
      * @param looper  The message looper of the background thread on which
      *                this object is running.
      * @param master  The message handler of master (foreground thread).
      * @param socket  The socket channel created on foreground thread.
      * @param options WebSockets connection options.
      */
-    public WebSocketWriter(Looper looper, Handler master, Socket socket, WebSocketOptions options) throws IOException {
+    public WebSocketWriter(Looper looper, Handler master, Socket socket, WebSocketOptions options)
+            throws IOException {
         super(looper);
         mLooper = looper;
         mMaster = master;
@@ -281,7 +285,6 @@ public class WebSocketWriter extends Handler {
         sendFrame(1, message.mPayload);
     }
 
-
     private void sendFrame(int opcode, byte[] payload) throws IOException {
         if (payload != null) {
             sendFrame(opcode, payload, payload.length);
@@ -289,14 +292,16 @@ public class WebSocketWriter extends Handler {
             sendFrame(opcode, null, 0);
         }
     }
+
     /**
      * Sends a WebSockets frame. Only need to use this method in derived classes which implement
      * more message types in processAppMessage(). You need to know what you are doing!
+     *
      * @param opcode  The SocketCallBacks frame opcode.
      * @param payload Frame payload or null.
      * @param length  Length of the chunk within payload to send.
      */
-    private void sendFrame(int opcode, byte[] payload, int length) throws IOException     {
+    private void sendFrame(int opcode, byte[] payload, int length) throws IOException {
 
         // first octet
         byte b0 = 0;
@@ -364,7 +369,6 @@ public class WebSocketWriter extends Handler {
      */
     @Override
     public void handleMessage(Message msg) {
-
         try {
             processMessage(msg.obj);
 
@@ -372,8 +376,9 @@ public class WebSocketWriter extends Handler {
                 mBufferedOutputStream.flush();
             }
         } catch (SocketException e) {
-
             notify(new WebSocketMessage.ConnectionLost());
+            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST,"Socket Exception Happen");
         } catch (Exception e) {
             notify(new Error(e));
         }
@@ -434,5 +439,6 @@ public class WebSocketWriter extends Handler {
     private void processAppMessage() throws WebSocketException {
 
         throw new WebSocketException("unknown message received by WebSocketWriter");
+
     }
 }

@@ -12,14 +12,12 @@ public class SDKConst {
     public static final String RETRY = "RETRY";
     public static final String PING = "PING";
     static final String KEEP_PINGING = "KEEP_PINGING";
-
-    public static final int[] PING_INTERVAL = {30 * 1000, 90 * 1000, 125 * 1000};
+    public static final int[] PING_INTERVAL = {9 * 1000, 15 * 1000, 20 * 1000};
     public static final int PING_TIMEOUT = 3 * 1000;
-    static final int[] RETRY_INTERVAL = {0, 2 * 1000, 5 * 1000, 10 * 1000, 18 * 1000, 40 * 1000, 100 * 1000, 240 * 1000};
-    static final int[] AuthProblemBroadcastDelay = {0, 60 * 1000, 240 * 1000, 600 * 1000};
+    static final int[] RETRY_INTERVAL = {0, 5 * 1000, 7 * 1000, 10 * 1000, 18 * 1000, 40 * 1000, 100 * 1000, 240 * 1000};
+    public static final int[] AuthProblemBroadcastDelay = {0, 60 * 1000, 240 * 1000, 600 * 1000};
     public static final int START_ALARM_CODE = 676428;
     public static int prevFailedConnectTries = 0;
-    public static int prevAuthProblems;
     public static final String KEY_MESSAGE_PASSED = "KEY_MESSAGE_PASSED";
     static final String BROADCAST_SENDING_PERMISSION_POSTFIX = ".permission.PUSH_SERVICE";
     static final int API_VERSION = 1;
@@ -39,7 +37,6 @@ public class SDKConst {
     static final int JOB_ID = 12698;
     public static final int SDK_INT = Build.VERSION.SDK_INT;
     public static final int OREO_SDK_INT = Build.VERSION_CODES.O;
-
     public static final int CLOSE_NORMAL = 1;
     public static final int CLOSE_CANNOT_CONNECT = 2;
     public static final int CLOSE_CONNECTION_LOST = 3;

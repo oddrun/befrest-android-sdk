@@ -16,9 +16,11 @@ import bef.rest.befrest.PushService;
 import bef.rest.befrest.clientData.ClientData;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
+import bef.rest.befrest.utils.WatchSdk;
 
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.OREO_SDK_INT;
+import static bef.rest.befrest.utils.SDKConst.PING;
 import static bef.rest.befrest.utils.SDKConst.REFRESH;
 import static bef.rest.befrest.utils.SDKConst.SDK_INT;
 
@@ -50,11 +52,15 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     public static void init(Context context, int uid, String authToken, String chId) {
+        if (context == null || chId == null || chId.length() <= 0)
+            throw new RuntimeException("invalid chId or context is null");
         Befrest.getInstance().setContext(context.getApplicationContext());
         ClientData.getInstance().setData(uid, chId, authToken);
     }
 
     public static void init(Context context) {
+        if (context == null)
+            throw new RuntimeException("context can't be null");
         Befrest.getInstance().setContext(context);
     }
 
@@ -63,6 +69,8 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     public void setChId(String chId) {
+        if (chId == null || !(chId.length() > 0))
+            throw new RuntimeException("invalid chId");
         ClientData.getInstance().setChId(chId);
     }
 
@@ -97,9 +105,10 @@ public class Befrest implements BefrestAppDelegate {
      */
     @SuppressWarnings("unused")
     public Befrest setCustomPushService(Class<? extends PushService> customPushService) {
-        if (customPushService == null)
-            BefrestLog.w(TAG, "custom PushService can not be null");
-        else if (isMyServiceRunning(pushService) && !customPushService.equals(pushService)) {
+        if (customPushService == null) {
+            BefrestLog.w(TAG, "custom PushService can't be null");
+            throw new RuntimeException("custom pushService can't be null");
+        } else if (isMyServiceRunning(pushService) && !customPushService.equals(pushService)) {
             BefrestLog.w(TAG, "can not assign customPushService after service run");
         } else {
             this.pushService = customPushService;
@@ -108,53 +117,62 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     @SuppressWarnings("unused")
-    public Befrest setCustomBackgroundService(Class<? extends BackgroundService> customPushService) {
-        if (customPushService == null)
-            BefrestLog.w(TAG, "custom background service can not be null");
-        else if (isMyServiceRunning(pushService) && !customPushService.equals(pushService)) {
+    public Befrest setCustomBackgroundService(Class<? extends BackgroundService> customBackgroundService) {
+        if (customBackgroundService == null) {
+            BefrestLog.w(TAG, "custom background service can't be null");
+            throw new RuntimeException("custom background Service can't be null");
+        } else if (isMyServiceRunning(pushService) && !customBackgroundService.equals(pushService)) {
             BefrestLog.w(TAG, "can not assign custom background service after service run");
         } else {
-            this.backgroundService = customPushService;
+            this.backgroundService = customBackgroundService;
         }
         return this;
     }
 
     /**
-     * @param topics topics that user want to subscribe on
+     * @param topics that user want to subscribe on
      * @return befrest instance
      */
     @SuppressWarnings("UnusedReturnValue")
     public Befrest addTopics(String... topics) {
-        String t = ClientData.getInstance().getTopics();
-        List<String> currentTopics = Arrays.asList(t.split("-"));
-        for (String s : topics) {
-            if (s.trim().length() == 0 || !s.matches("[A-Za-z0-9]+")) {
-                BefrestLog.w(TAG, "Topic Name Should be AlphaNumeric");
-                continue;
+        try {
+            String t = ClientData.getInstance().getTopics();
+            List<String> currentTopics = Arrays.asList(t.split("-"));
+            for (String s : topics) {
+                if (s.trim().length() == 0 || !s.matches("[A-Za-z0-9]+")) {
+                    BefrestLog.w(TAG, "Topic Name Should be AlphaNumeric");
+                    continue;
+                }
+                if (currentTopics.contains(s)) {
+                    BefrestLog.w(TAG, "Topic : " + s + " has already exist");
+                    continue;
+                }
+                ClientData.getInstance().addTopic(s);
             }
-            if (currentTopics.contains(s)) {
-                BefrestLog.w(TAG, "Topic : " + s + " has already exist");
-                continue;
-            }
-            ClientData.getInstance().addTopic(s);
+        } catch (Exception e) {
+            WatchSdk.reportCrash(e, null);
         }
         return this;
     }
 
     @SuppressWarnings("UnusedReturnValue")
     public Befrest removeTopics(String... topics) {
-        final List<String> toRemove = Arrays.asList(topics);
-        String currentTopics = ClientData.getInstance().getTopics();
-        final String[] currTopics = currentTopics.split("-");
-        StringBuilder resTopics = new StringBuilder();
-        for (String topic : currTopics) {
-            if (!toRemove.contains(topic))
-                resTopics.append(topic).append("-");
+        try {
+            final List<String> toRemove = Arrays.asList(topics);
+            String currentTopics = ClientData.getInstance().getTopics();
+            final String[] currTopics = currentTopics.split("-");
+            StringBuilder resTopics = new StringBuilder();
+            for (String topic : currTopics) {
+                if (!toRemove.contains(topic))
+                    resTopics.append(topic).append("-");
+            }
+            if (resTopics.length() > 0)
+                resTopics = new StringBuilder(resTopics.substring(0, resTopics.length() - 1));
+            BefrestLog.i(TAG, "Topics to remove is " + currentTopics);
+            ClientData.getInstance().updateTopic(resTopics.toString());
+        } catch (Exception e) {
+            WatchSdk.reportCrash(e, null);
         }
-        if (resTopics.length() > 0)
-            resTopics = new StringBuilder(resTopics.substring(0, resTopics.length() - 1));
-        BefrestLog.i(TAG, "Topics to remove is " + currentTopics);
-        ClientData.getInstance().updateTopic(resTopics.toString());
         return this;
     }
 
@@ -201,6 +219,7 @@ public class Befrest implements BefrestAppDelegate {
             isBefrestStart = true;
         } catch (IllegalStateException e) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WatchSdk.reportCrash(e,null);
                 setupJobScheduler();
             }
         }
@@ -273,7 +292,12 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     public String[] getTopics() {
-        return ClientData.getInstance().getTopics().split("-");
+        try {
+            return ClientData.getInstance().getTopics().split("-");
+        }catch (Exception e){
+            WatchSdk.reportCrash(e,null);
+        }
+        return "".split("-");
     }
 
     public boolean isWantToStart() {
@@ -292,6 +316,10 @@ public class Befrest implements BefrestAppDelegate {
         return backgroundService;
     }
 
+    public int getBuildNumber() {
+        return buildNumber;
+    }
+
     public void setBackgroundService(Class<?> backgroundService) {
         this.backgroundService = backgroundService;
     }
@@ -303,4 +331,10 @@ public class Befrest implements BefrestAppDelegate {
     public void setBefrestConnectionMode(BefrestConnectionMode befrestConnectionMode) {
         this.befrestConnectionMode = befrestConnectionMode;
     }
+
+    @SuppressWarnings("unused")
+    public boolean isBefrestInitialized() {
+        return getContext() != null;
+    }
+
 }

@@ -1,0 +1,13 @@
+package bef.rest.befrest.utils;
+
+public enum AnalyticsType {
+    TRY_TO_CONNECT,
+    CONNECTION_LOST,
+    CANNOT_CONNECT,
+    INVALID_PONG,
+    MALFORMED_DATA,
+    NETWORK_CONNECTED,
+    NETWORK_DISCONNECTED,
+    BEFREST_CONNECTION_CHANGE,
+    RETRY
+}

@@ -22,6 +22,7 @@ import android.net.ConnectivityManager;
 
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
+import bef.rest.befrest.utils.WatchSdk;
 
 import static bef.rest.befrest.utils.SDKConst.NETWORK_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.NETWORK_DISCONNECTED;
@@ -31,21 +32,25 @@ public final class BefrestConnectivityChangeReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        String flag;
-        if (action != null) {
-            switch (action) {
-                case ConnectivityManager.CONNECTIVITY_ACTION:
-                    if (Util.isConnectedToInternet(context)) {
-                        BefrestLog.w(TAG, "Connection Changed " + NETWORK_CONNECTED);
-                        flag = NETWORK_CONNECTED;
-                    } else {
-                        BefrestLog.w(TAG, "Connection Changed " + NETWORK_DISCONNECTED);
-                        flag = NETWORK_DISCONNECTED;
-                    }
-                    Befrest.getInstance().startService(flag);
-                    break;
+        try {
+            String action = intent.getAction();
+            String flag;
+            if (action != null) {
+                switch (action) {
+                    case ConnectivityManager.CONNECTIVITY_ACTION:
+                        if (Util.isConnectedToInternet(context)) {
+                            BefrestLog.w(TAG, "Connection Changed " + NETWORK_CONNECTED);
+                            flag = NETWORK_CONNECTED;
+                        } else {
+                            BefrestLog.w(TAG, "Connection Changed " + NETWORK_DISCONNECTED);
+                            flag = NETWORK_DISCONNECTED;
+                        }
+                        Befrest.getInstance().startService(flag);
+                        break;
+                }
             }
+        }catch (Exception e){
+            WatchSdk.reportCrash(e,null);
         }
     }
 }

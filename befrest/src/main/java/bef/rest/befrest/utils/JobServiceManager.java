@@ -24,8 +24,11 @@ public class JobServiceManager {
 
 
     private JobServiceManager() {
+        if (Befrest.getInstance().isBefrestInitialized())
         jobScheduler = (JobScheduler) Befrest.getInstance().getContext()
                 .getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        else
+            BefrestLog.e(TAG,"Befrest not initialized yet");
     }
 
     public static JobServiceManager getInstance() {

@@ -23,18 +23,19 @@ import bef.rest.befrest.befrest.Befrest;
 
 public class BefrestPreferences {
 
-    private static String SHARED_PREFERENCES_NAME = "rest.bef.SHARED_PREFERENCES";
     public static final String PREF_U_ID = "PREF_U_ID";
     public static final String PREF_AUTH = "PREF_AUTH";
     public static final String PREF_CH_ID = "PREF_CH_ID";
-    private static final String PREF_SERVICE_CHOOSER = "PREF_SERVICE_CHOOSER";
     public static final String PREF_TOPICS = "PREF_TOPICS";
     static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
 
     public static SharedPreferences getPrefs() {
+        String SHARED_PREFERENCES_NAME = "rest.bef.SHARED_PREFERENCES";
+        if (Befrest.getInstance().isBefrestInitialized())
         return Befrest.getInstance().getContext().
                 getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        return null;
     }
 
     public static void saveInt(String key, int value) {
@@ -68,8 +69,7 @@ public class BefrestPreferences {
     }
 
     public static void saveToPrefs(int uId, String AUTH, String chId) {
-        Editor prefEditor = Befrest.getInstance().getContext().
-                getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).edit();
+        Editor prefEditor = getPrefs().edit();
         prefEditor.putInt(PREF_U_ID, uId);
         prefEditor.putString(PREF_AUTH, AUTH);
         prefEditor.putString(PREF_CH_ID, chId);

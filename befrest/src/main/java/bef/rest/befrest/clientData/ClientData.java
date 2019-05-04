@@ -23,9 +23,11 @@ public class ClientData {
     private ClientData() {
         if (topics == null)
             topics = "";
-        chId = getPrefs().getString(PREF_CH_ID, "");
-        authToken = getPrefs().getString(PREF_AUTH, "");
-        uId = getPrefs().getInt(PREF_U_ID, 0);
+        if (getPrefs() != null) {
+            chId = getPrefs().getString(PREF_CH_ID, "");
+            authToken = getPrefs().getString(PREF_AUTH, "");
+            uId = getPrefs().getInt(PREF_U_ID, 0);
+        }
     }
 
     private static class Loader {

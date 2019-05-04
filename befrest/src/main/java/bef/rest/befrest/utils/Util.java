@@ -11,17 +11,25 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.PowerManager;
+import android.support.annotation.RequiresApi;
+import android.text.TextUtils;
 import android.util.Base64;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.util.Comparator;
 
 import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectivityChangeReceiver;
 import bef.rest.befrest.befrest.BefrestMessage;
 
+import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BROADCAST_SENDING_PERMISSION_POSTFIX;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.KEEP_PINGING;
@@ -38,6 +46,7 @@ import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 public class Util {
 
     private static String TAG = Util.class.getName();
+    public static int netWorkType = 0;
 
     public static String getIntentEvent(Intent intent) {
         if (intent != null) {
@@ -69,14 +78,14 @@ public class Util {
             if (netInfo != null && (netInfo.isConnectedOrConnecting() || netInfo.isAvailable())) {
                 return true;
             }
-
             netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-
             if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+                netWorkType = 1;
                 return true;
             } else {
                 netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
                 if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+                    netWorkType = 2;
                     return true;
                 }
             }
@@ -99,6 +108,35 @@ public class Util {
         return "";
     }
 
+    static String getDeviceInfo() {
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
+        if (model.startsWith(manufacturer)) {
+            return capitalize(model);
+        }
+        return capitalize(manufacturer) + " - " + model + " - ";
+    }
+
+    private static String capitalize(String str) {
+        if (TextUtils.isEmpty(str)) {
+            return str;
+        }
+        char[] arr = str.toCharArray();
+        boolean capitalizeNext = true;
+
+        StringBuilder phrase = new StringBuilder();
+        for (char c : arr) {
+            if (capitalizeNext && Character.isLetter(c)) {
+                phrase.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+                continue;
+            } else if (Character.isWhitespace(c)) {
+                capitalizeNext = true;
+            }
+            phrase.append(c);
+        }
+        return phrase.toString();
+    }
 
     public static Comparator<BefrestMessage> comparator =
             (lhs, rhs) -> lhs.getTimeStamp().compareTo(rhs.getTimeStamp());
@@ -112,12 +150,17 @@ public class Util {
     }
 
     @SuppressLint("InvalidWakeLockTag")
-    public static PowerManager.WakeLock acquireConnectWakeLock(PowerManager.WakeLock connectWakelock) {
+    public static PowerManager.WakeLock acquireConnectWakeLock(PowerManager.WakeLock
+                                                                       connectWakelock) {
         if (Util.isWakeLockPermissionGranted()) {
             if (connectWakelock != null && connectWakelock.isHeld()) {
                 return connectWakelock;
             }
             Context ctx = Befrest.getInstance().getContext();
+            if (ctx == null) {
+                BefrestLog.i(TAG, "could not acquire connect wakelock");
+                return null;
+            }
             PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
             connectWakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, connectWakeLockName);
             connectWakelock.setReferenceCounted(false);
@@ -130,14 +173,32 @@ public class Util {
     }
 
     private static boolean isWakeLockPermissionGranted() {
-        return Befrest.getInstance().getContext().checkCallingOrSelfPermission(
-                Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED;
+        if (Befrest.getInstance().isBefrestInitialized())
+            return Befrest.getInstance().getContext().checkCallingOrSelfPermission(
+                    Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED;
+        return false;
     }
 
+    public static String encodeToBase64(String s){
+        try {
+            byte[] data = s.getBytes("UTF-8");
+            return Base64.encodeToString(data, Base64.DEFAULT);
+        } catch (UnsupportedEncodingException e) {
+            return "";
+        }
+    }
+
+    public static String stackTraceToString(Exception e){
+        Writer result = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(result);
+        e.printStackTrace(printWriter);
+        return result.toString();
+    }
     /**
      * use for fireBase
      */
-    static boolean customReceiverPass(Context context) throws PackageManager.NameNotFoundException {
+    static boolean customReceiverPass(Context context) throws
+            PackageManager.NameNotFoundException {
         PackageManager pm = context.getPackageManager();
         PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
         Intent intent = new Intent();
@@ -162,13 +223,4 @@ public class Util {
         // Not found
         return true;
     }
-
-    public static void enableConnectivityChangeListener(Context context) {
-        PackageManager pm = context.getPackageManager();
-        ComponentName receiver = new ComponentName(context, BefrestConnectivityChangeReceiver.class);
-        pm.setComponentEnabledSetting(receiver,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP);
-    }
-
 }

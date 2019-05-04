@@ -44,13 +44,18 @@ public class MessageIdPersister extends BoundedLinkedHashSet<String> {
     @SuppressWarnings("NullableProblems")
     @Override
     public String toString() {
-        Iterator<String> it = iterator();
-        if (!it.hasNext())
-            return "";
-        StringBuilder sb = new StringBuilder();
-        sb.append(it.next());
-        while (it.hasNext())
-            sb.append(",").append(it.next());
-        return sb.toString();
+        try {
+            Iterator<String> it = iterator();
+            if (!it.hasNext())
+                return "";
+            StringBuilder sb = new StringBuilder();
+            sb.append(it.next());
+            while (it.hasNext())
+                sb.append(",").append(it.next());
+            return sb.toString();
+        }catch (Exception e){
+            WatchSdk.reportCrash(e,null);
+        }
+        return "";
     }
 }

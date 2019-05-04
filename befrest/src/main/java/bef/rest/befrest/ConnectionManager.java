@@ -22,10 +22,12 @@ import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
+import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.MessageIdPersister;
 import bef.rest.befrest.utils.UrlConnection;
 import bef.rest.befrest.utils.Util;
+import bef.rest.befrest.utils.WatchSdk;
 import bef.rest.befrest.websocket.SocketHelper;
 
 import static bef.rest.befrest.utils.SDKConst.CLOSE_CANNOT_CONNECT;
@@ -51,7 +53,7 @@ public class ConnectionManager extends Handler {
     private Looper looper;
     private SocketHelper socketHelper;
     private Context appContext;
-    private int prevSuccessfullPings;
+    private int prevSuccessfulPings;
     private SocketCallBacks socketCallBacks;
     private boolean refreshRequested;
     private boolean restartInProgress;
@@ -60,9 +62,10 @@ public class ConnectionManager extends Handler {
     private List<String> pingIdList = new ArrayList<>();
     private String pendingPingId = "";
 
-
     ConnectionManager(Looper looper, SocketCallBacks socketCallback) {
         super(looper);
+        if (!Befrest.getInstance().isBefrestInitialized())
+            throw new RuntimeException("Befrest in not initialized yet call init method in Application class");
         this.looper = looper;
         this.socketCallBacks = socketCallback;
         this.appContext = Befrest.getInstance().getContext().getApplicationContext();
@@ -177,11 +180,14 @@ public class ConnectionManager extends Handler {
             socketCallBacks.onChangeConnection(BefrestConnectionMode.CONNECTED, null);
             removeCallbacks(disconnectIfWebSocketHandshakeTimeOut);
             post(releaseWakeLock);
-            prevSuccessfullPings = 0;
+            prevSuccessfulPings = 0;
             if (Befrest.getInstance().isServiceRunning())
                 setNextPingToSendInFuture();
-        } else
+        } else{
+            //TODO send Event To watchSDK
             BefrestLog.i(TAG, "serverHandshakeMessage: error happen on ServerHandShake");
+        }
+
     }
 
     private void serverPongMessage(WebSocketMessage.Message msg) {
@@ -194,9 +200,12 @@ public class ConnectionManager extends Handler {
         BefrestLog.v(TAG, "pong: process on pongData Message");
         if (pongData != null) {
             boolean isValid = isPongValid(pongData);
-            if (!isValid) return;
+            if (!isValid) {
+                WatchSdk.reportAnalytics(AnalyticsType.INVALID_PONG);
+                return;
+            }
             BefrestLog.v(TAG, "pong with data : " + pongData + " is valid");
-            prevSuccessfullPings++;
+            prevSuccessfulPings++;
         }
         pendingPingId = "";
         cancelRestart();
@@ -210,12 +219,16 @@ public class ConnectionManager extends Handler {
     }
 
     private boolean isPongValid(String pongData) {
-        if (!pongData.equals(pendingPingId)) {
-            pingIdList.remove(pongData);
-            return false;
+        try {
+            if (!pongData.equals(pendingPingId)) {
+                pingIdList.remove(pongData);
+                return false;
+            }
+            return pingIdList.remove(pongData);
+        }catch (Exception e){
+            WatchSdk.reportCrash(e,null);
         }
-        return pingIdList.remove(pongData);
-
+        return false;
     }
 
     private void setNextPingToSendInFuture() {
@@ -223,7 +236,7 @@ public class ConnectionManager extends Handler {
     }
 
     private int getPingInterval() {
-        return PING_INTERVAL[prevSuccessfullPings < PING_INTERVAL.length ? prevSuccessfullPings : PING_INTERVAL.length - 1];
+        return PING_INTERVAL[prevSuccessfulPings < PING_INTERVAL.length ? prevSuccessfulPings : PING_INTERVAL.length - 1];
     }
 
     private void setNextPingToSendInFuture(int interval) {
@@ -291,7 +304,6 @@ public class ConnectionManager extends Handler {
         return pingId;
     }
 
-
     private void setupRestart() {
         BefrestLog.v(TAG, "setupRestart: ");
         postDelayed(restart, PING_TIMEOUT);
@@ -311,10 +323,11 @@ public class ConnectionManager extends Handler {
         try {
             if (!socketHelper.isSocketConnected()) {
                 if (Util.isConnectedToInternet(appContext)) {
+                    WatchSdk.reportAnalytics(AnalyticsType.TRY_TO_CONNECT);
                     wakeLock = acquireConnectWakeLock(wakeLock);
                     socketHelper.createSocket();
                     socketHelper.startWebSocketHandshake();
-                    postDelayed(disconnectIfWebSocketHandshakeTimeOut, 7000);
+                    postDelayed(disconnectIfWebSocketHandshakeTimeOut,7000);
                 } else {
                     BefrestLog.w(TAG, "Internet connection is not available");
                 }
@@ -328,9 +341,11 @@ public class ConnectionManager extends Handler {
             UrlConnection.getInstance().setPort(80);
             disconnectAndNotify("exception thrown during socket creation");
             e.printStackTrace();
+            WatchSdk.reportCrash(e,null);
         } catch (IOException e) {
             disconnectAndNotify(e.getMessage());
             e.printStackTrace();
+            WatchSdk.reportCrash(e,null);
         }
     }
 
@@ -372,18 +387,23 @@ public class ConnectionManager extends Handler {
                 socketHelper.fillNull();
             } else
                 BefrestLog.i(TAG, "reader already dead");
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            WatchSdk.reportCrash(e,null);
         }
         BefrestLog.i(TAG, "disconnect finish");
     }
 
     private Runnable sendPing = () -> socketCallBacks.pingServer();
     private Runnable restart = () -> {
-        if (pingIdList.size() > 2)
+        if (pingIdList.size() > 2) {
             disconnectAndNotify(CLOSE_CONNECTION_NOT_RESPONDING, PING_TIME_OUT_MESSAGE);
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, PING_TIMEOUT, PING_TIME_OUT_MESSAGE);
+        }
     };
-    private Runnable disconnectIfWebSocketHandshakeTimeOut = () ->
-            disconnectAndNotify(CLOSE_HANDSHAKE_TIME_OUT, HANDSHAKE_TIMEOUT_MESSAGE);
+    private Runnable disconnectIfWebSocketHandshakeTimeOut = () -> {
+        WatchSdk.reportAnalytics(AnalyticsType.CANNOT_CONNECT, CLOSE_HANDSHAKE_TIME_OUT, HANDSHAKE_TIMEOUT_MESSAGE);
+        disconnectAndNotify(CLOSE_HANDSHAKE_TIME_OUT, HANDSHAKE_TIMEOUT_MESSAGE);
+    };
 
     private Runnable releaseWakeLock = () -> {
         BefrestLog.i(TAG, "release WakeLock");
