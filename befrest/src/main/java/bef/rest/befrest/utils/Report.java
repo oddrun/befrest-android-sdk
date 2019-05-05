@@ -2,16 +2,16 @@ package bef.rest.befrest.utils;
 
 abstract class Report {
     private int buildNumber;
-    private int netType;
     private String deviceModel;
     private String pkg;
     private int apiVersion;
+    private String chId;
 
-    public Report(int buildNumber, int netType, String deviceModel, String pkg, int apiVersion) {
+    Report(int buildNumber,String deviceModel, String pkg, int apiVersion,String chId) {
         this.buildNumber = buildNumber;
-        this.netType = netType;
         this.deviceModel = deviceModel;
         this.pkg = pkg;
         this.apiVersion = apiVersion;
+        this.chId=chId;
     }
 }

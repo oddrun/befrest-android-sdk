@@ -13,6 +13,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
 
@@ -24,7 +27,9 @@ import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
+import bef.rest.befrest.utils.BefrestThreadFactory;
 import bef.rest.befrest.utils.MessageIdPersister;
+import bef.rest.befrest.utils.ReportManager;
 import bef.rest.befrest.utils.UrlConnection;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
@@ -183,10 +188,9 @@ public class ConnectionManager extends Handler {
             prevSuccessfulPings = 0;
             if (Befrest.getInstance().isServiceRunning())
                 setNextPingToSendInFuture();
-        } else{
-            //TODO send Event To watchSDK
+        } else
             BefrestLog.i(TAG, "serverHandshakeMessage: error happen on ServerHandShake");
-        }
+
 
     }
 
@@ -328,6 +332,7 @@ public class ConnectionManager extends Handler {
                     socketHelper.createSocket();
                     socketHelper.startWebSocketHandshake();
                     postDelayed(disconnectIfWebSocketHandshakeTimeOut,7000);
+                    sendCacheReport();
                 } else {
                     BefrestLog.w(TAG, "Internet connection is not available");
                 }
@@ -347,6 +352,10 @@ public class ConnectionManager extends Handler {
             e.printStackTrace();
             WatchSdk.reportCrash(e,null);
         }
+    }
+
+    private void sendCacheReport() {
+        new ReportManager().execute();
     }
 
     private boolean isNewMessage(String msgId) {

@@ -21,6 +21,7 @@ import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
+import bef.rest.befrest.utils.ReportManager;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
@@ -98,7 +99,6 @@ public class PushService extends Service implements SocketCallBacks {
     public void handleEvent(String event) {
         switch (event) {
             case NETWORK_CONNECTED:
-                WatchSdk.reportAnalytics(AnalyticsType.NETWORK_CONNECTED);
             case CONNECT:
                 connectIfNetworkAvailable();
                 break;
@@ -224,6 +224,8 @@ public class PushService extends Service implements SocketCallBacks {
         } catch (InterruptedException e) {
             WatchSdk.reportCrash(e,null);
             e.printStackTrace();
+        }catch (Exception e){
+            e.printStackTrace();
         }
         connectionManager = null;
         BefrestLog.w(TAG, "------------------------onDestroy: Finish------------------------");
@@ -309,7 +311,7 @@ public class PushService extends Service implements SocketCallBacks {
     @Override
     public void onChangeConnection(BefrestConnectionMode befrestConnectionMode, String failureReason) {
         onChangedConnection(befrestConnectionMode, failureReason);
-        WatchSdk.reportAnalytics(AnalyticsType.BEFREST_CONNECTION_CHANGE);
+        WatchSdk.reportAnalytics(AnalyticsType.BEFREST_CONNECTION_CHANGE,befrestConnectionMode.toString());
     }
 
     @Override
@@ -318,9 +320,9 @@ public class PushService extends Service implements SocketCallBacks {
     }
 
     private Runnable retry = () -> {
+        WatchSdk.reportAnalytics(AnalyticsType.RETRY,prevFailedConnectTries);
         onChangeConnection(BefrestConnectionMode.RETRY, null);
         Befrest.getInstance().startService(RETRY);
-        WatchSdk.reportAnalytics(AnalyticsType.RETRY,prevFailedConnectTries);
     };
     private Runnable finishBatchMode = () -> {
         int receivedMsgSize = receivedMessages.size();

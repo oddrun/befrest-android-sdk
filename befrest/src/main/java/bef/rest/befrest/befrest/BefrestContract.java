@@ -13,6 +13,7 @@ import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
+import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
 import static bef.rest.befrest.utils.SDKConst.ACTION_BEFREST_PUSH;
 import static bef.rest.befrest.utils.SDKConst.BROADCAST_TYPE;
 import static bef.rest.befrest.utils.SDKConst.KEY_TIME_SENT;
@@ -47,7 +48,7 @@ public class BefrestContract {
             intent.putExtra(KEY_TIME_SENT, "" + now);
             context.getApplicationContext().sendBroadcast(intent, permission);
         } catch (Exception e) {
-            WatchSdk.reportCrash(e,"can't BroadCast Messages");
+            WatchSdk.reportCrash(e, "can't BroadCast Messages");
         }
     }
 
@@ -60,7 +61,7 @@ public class BefrestContract {
             IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
             Befrest.getInstance().getContext().registerReceiver(befrestConnectivityChangeReceiver, filter);
         } catch (Exception e) {
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
             e.printStackTrace();
         }
     }
@@ -73,7 +74,7 @@ public class BefrestContract {
             }
             Befrest.getInstance().getContext().unregisterReceiver(befrestConnectivityChangeReceiver);
         } catch (Exception e) {
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
             e.printStackTrace();
         }
     }
@@ -81,7 +82,7 @@ public class BefrestContract {
 
     public void setAlarmService() {
         if (Befrest.getInstance().isBefrestInitialized()) {
-            BefrestLog.e(TAG,"befrest is not initialized yet");
+            BefrestLog.e(TAG, "befrest is not initialized yet");
             return;
         }
         Context ctx = Befrest.getInstance().getContext();
@@ -95,10 +96,8 @@ public class BefrestContract {
 
 
     public void reportOnClose(int code) {
-        //todo save close connection
     }
 
     public void reportOnOpen(Context context) {
-        //todo save open connection
     }
 }

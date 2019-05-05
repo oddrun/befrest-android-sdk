@@ -621,26 +621,20 @@ public class WebSocketReader extends Thread {
             } while (!mStopped);
 
         } catch (WebSocketException e) {
-            WatchSdk.reportCrash(e,null);
             notify(new WebSocketMessage.ProtocolViolation(e));
             WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_PROTOCOL_ERROR, "WebSocketException happen");
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e,e.getMessage());
 
         } catch (SocketException e) {
-            WatchSdk.reportCrash(e,null);
-            // BufferedInputStream throws when the socket is closed,
-            // eat the exception if we are already in STATE_CLOSED.
             if (mState != STATE_CLOSED && !mSocket.isClosed()) {
                 notify(new WebSocketMessage.ConnectionLost());
                 WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_CONNECTION_LOST, "SocketException happen");
-                WatchSdk.reportCrash(e,null);
-
             }
 
         } catch (Exception e) {
             notify(new WebSocketMessage.Error(e));
             WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_INTERNAL_ERROR, "Exception happen");
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e,"may be connection aborted");
 
         } finally {
 

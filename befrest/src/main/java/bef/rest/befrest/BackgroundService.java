@@ -86,7 +86,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
                 try {
                     super.handleMessage(msg);
                 } catch (Exception e) {
-                    WatchSdk.reportCrash(e,null);
+                    WatchSdk.reportCrash(e,"Exception happen During broadcast message to app");
                 }
             }
         };

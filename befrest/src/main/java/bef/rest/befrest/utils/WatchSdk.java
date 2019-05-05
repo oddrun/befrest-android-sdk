@@ -1,53 +1,48 @@
 package bef.rest.befrest.utils;
 
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
-import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
-import bef.rest.befrest.befrest.Befrest;
-
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_ANALYTICS;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_CRASH;
 import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
+import static bef.rest.befrest.utils.Util.encodeToBase64;
+import static bef.rest.befrest.utils.Util.md5;
+import static bef.rest.befrest.utils.Util.netWorkType;
 import static bef.rest.befrest.utils.Util.stackTraceToString;
+import static bef.rest.befrest.utils.Util.toHexString;
 
 public class WatchSdk {
     private static final String TAG = "WatchSdk";
 
     public static void reportAnalytics(AnalyticsType analyticsType, Object... o) {
+        if (!isAllowToCollect(analyticsType))
+            return;
         switch (analyticsType) {
             case CONNECTION_LOST:
             case CANNOT_CONNECT:
-                cacheReport(new Analytics(analyticsType, (String) o[1], (int) o[0]));
+                cacheAnalytics(new Analytics(analyticsType, 100), (String) o[1]);
                 break;
             case INVALID_PONG:
-                cacheReport(new Analytics(analyticsType, null, 100));
-                break;
-            case MALFORMED_DATA:
-                cacheReport(new Analytics(analyticsType, ((Exception) o[0]).getMessage(), 10));
-                break;
-            case NETWORK_CONNECTED:
-                cacheReport(new Analytics(analyticsType, null, 101));
+                cacheAnalytics(new Analytics(analyticsType, 101), null);
                 break;
             case NETWORK_DISCONNECTED:
-                cacheReport(new Analytics(analyticsType, null, 102));
+                cacheAnalytics(new Analytics(analyticsType, 102), null);
                 break;
             case TRY_TO_CONNECT:
-                cacheReport(new Analytics(analyticsType, null, 103));
+                cacheAnalytics(new Analytics(analyticsType, 103), null);
                 break;
             case BEFREST_CONNECTION_CHANGE:
-                cacheReport(new Analytics(analyticsType, null, 104));
+                cacheAnalytics(new Analytics(analyticsType, 104), (String) o[0]);
                 break;
             case RETRY:
-                cacheReport(new Analytics(analyticsType, null, (int) o[0]));
+                cacheAnalytics(new Analytics(analyticsType, 105), null);
                 break;
             default:
                 BefrestLog.w(TAG, "invalid Analytic type");
@@ -55,49 +50,77 @@ public class WatchSdk {
     }
 
     public static void reportCrash(Exception e, String data) {
-        Map<String, Crash> crashMap;
-        String currentStackTrace = stackTraceToString(e);
-        Gson gson = new Gson();
-        SharedPreferences sharedPrefs = getPrefs();
-        if (sharedPrefs != null) {
-            String stringCrash = sharedPrefs.getString("Crash", "");
-            if (stringCrash != null && !stringCrash.isEmpty()) {
-                Type type = new TypeToken<HashMap<String, Crash>>() {
-                }.getType();
-                crashMap = gson.fromJson(stringCrash, type);
-                Crash crash = crashMap.get(currentStackTrace);
-                if (crash == null) {
-                    crash = new Crash(currentStackTrace,data);
-                }
-                crash.addNewTs();
-                crashMap.put(currentStackTrace, crash);
+        try {
+            if (isAllowToCollect(e)) {
+
             }
+            Map<String, Crash> crashMap = new HashMap<>();
+            String currentStackTrace = encodeToBase64(stackTraceToString(e));
+            String key = toHexString(md5(currentStackTrace).getBytes());
+            Gson gson = new Gson();
+            SharedPreferences sharedPrefs = getPrefs();
+            if (sharedPrefs != null) {
+                String stringCrash = sharedPrefs.getString(PREF_CRASH, "");
+                if (stringCrash != null && !stringCrash.isEmpty()) {
+                    Type type = new TypeToken<HashMap<String, Crash>>() {
+                    }.getType();
+                    crashMap = gson.fromJson(stringCrash, type);
+                }
+                Crash crash = crashMap.get(key);
+                if (crash == null) {
+                    crash = new Crash(currentStackTrace, null);
+                }
+                CustomTimeStamp ts = new CustomTimeStamp(System.currentTimeMillis(), netWorkType, data);
+                crash.addNewTs(ts);
+                crashMap.put(key, crash);
+                SharedPreferences.Editor editor = sharedPrefs.edit();
+                stringCrash = gson.toJson(crashMap);
+                editor.putString(PREF_CRASH, stringCrash);
+                editor.apply();
+            }
+        } catch (Exception e1) {
+            e1.printStackTrace();
         }
     }
 
-    private static void cacheReport(Analytics analytics) {
-        Map<AnalyticsType, Analytics> analyticsList = new HashMap<>();
-        SharedPreferences sharedPrefs =
-                PreferenceManager.getDefaultSharedPreferences(Befrest.getInstance().getContext());
-        Gson gson = new Gson();
-        String json = sharedPrefs.getString("Analytics", "");
-        if (json != null && !json.isEmpty()) {
-            Type type = new TypeToken<HashMap<AnalyticsType, Analytics>>() {
-            }.getType();
-            analyticsList = gson.fromJson(json, type);
-        }
-        Analytics currentAnalyticData = analyticsList.get(analytics.getAnalyticsType());
-        if (currentAnalyticData != null) {
-            currentAnalyticData.addNewTimeStamp(System.currentTimeMillis());
-            analyticsList.put(analytics.getAnalyticsType(), currentAnalyticData);
-        } else {
-            analytics.addNewTimeStamp(System.currentTimeMillis());
-            analyticsList.put(analytics.getAnalyticsType(), analytics);
-        }
+    private static boolean isAllowToCollect(Exception e) {
+        return true;
+    }
+    private static boolean isAllowToCollect(AnalyticsType analyticsType) {
+        return true;
+    }
 
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        json = gson.toJson(analyticsList);
-        editor.putString("Analytics", json);
-        editor.apply();
+    private static void cacheAnalytics(Analytics analytics, String extraParam) {
+        try {
+            Map<AnalyticsType, Analytics> analyticsList = new HashMap<>();
+            SharedPreferences sharedPrefs = getPrefs();
+            Gson gson = new Gson();
+            if (sharedPrefs != null) {
+                String json = sharedPrefs.getString(PREF_ANALYTICS, "");
+                if (json != null && !json.isEmpty()) {
+                    Type type = new TypeToken<HashMap<AnalyticsType, Analytics>>() {
+                    }.getType();
+                    analyticsList = gson.fromJson(json, type);
+                }
+                Analytics currentAnalyticData = analyticsList.get(analytics.getAnalyticsType());
+                CustomTimeStamp customTimeStamp = new CustomTimeStamp(System.currentTimeMillis(),
+                        Util.netWorkType, extraParam);
+
+                if (currentAnalyticData != null) {
+                    currentAnalyticData.addNewTimeStamp(customTimeStamp);
+                    analyticsList.put(analytics.getAnalyticsType(), currentAnalyticData);
+                } else {
+                    analytics.addNewTimeStamp(customTimeStamp);
+                    analyticsList.put(analytics.getAnalyticsType(), analytics);
+                }
+
+                SharedPreferences.Editor editor = sharedPrefs.edit();
+                json = gson.toJson(analyticsList);
+                editor.putString(PREF_ANALYTICS, json);
+                editor.apply();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

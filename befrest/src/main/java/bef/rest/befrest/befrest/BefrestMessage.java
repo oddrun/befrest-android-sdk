@@ -26,26 +26,30 @@ public final class BefrestMessage implements Parcelable {
         try {
             JSONObject jsObject = new JSONObject(rawMsg);
             parseMessageV2(jsObject);
+            } catch (JSONException e) {
+            isCorrupted = true;
+            reportCorruptedMessageAnomaly(e, rawMsg);
         } catch (Exception e) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(e,rawMsg);
+            reportCorruptedMessageAnomaly(e, rawMsg);
         }
         if (type == null || timeStamp == null || data == null) {
             isCorrupted = true;
-            reportCorruptedMessageAnomaly(new Exception("type " + type + " timeStamp : " + timeStamp
+            reportCorruptedMessageAnomaly(new JSONException("type " + type + " timeStamp : " + timeStamp
                     + " data : " + data), rawMsg);
         }
     }
 
 
     private void reportCorruptedMessageAnomaly(Exception e, String rawMsg) {
-        WatchSdk.reportAnalytics(AnalyticsType.MALFORMED_DATA, e);
-        WatchSdk.reportCrash(e,rawMsg);
+        WatchSdk.reportCrash(e, rawMsg);
     }
 
     private void parseMessageV2(JSONObject jsObject) throws JSONException {
         try {
             msgId = jsObject.getString("mid");
+        } catch (JSONException e) {
+            msgId = null;
         } catch (Exception e) {
             msgId = null;
         }

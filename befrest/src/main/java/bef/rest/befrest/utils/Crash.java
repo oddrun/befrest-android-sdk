@@ -1,28 +1,33 @@
 package bef.rest.befrest.utils;
 
-import android.util.Base64;
-
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
 import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.clientData.ClientData;
 
 public class Crash extends Report {
-    private String stackTrace;
-    private String data;
-    private List<Long> ts;
 
-    public Crash(String stackTrace) {
-        super(Befrest.getInstance().getBuildNumber(),Util.netWorkType,Util.getDeviceInfo(),
-                Befrest.getInstance().getContext().getPackageName(),SDKConst.SDK_INT);
+    private String data;
+    private String stackTrace;
+    private List<CustomTimeStamp> ts;
+
+
+    private Crash(String stackTrace) {
+        super(Befrest.getInstance().getBuildNumber(),Util.getDeviceInfo(),
+                Befrest.getInstance().getContext().getPackageName(), SDKConst.SDK_INT,
+                ClientData.getInstance().getChId());
         this.stackTrace = stackTrace;
         ts = new ArrayList<>();
     }
 
-    public Crash(String stackTrace, String data) {
+    Crash(String stackTrace, String data) {
         this(stackTrace);
         this.data = data;
+    }
+
+    public List<CustomTimeStamp> getTs() {
+        return ts;
     }
 
     public String getStackTrace() {
@@ -33,16 +38,7 @@ public class Crash extends Report {
         this.stackTrace = stackTrace;
     }
 
-    public void addNewTs(){
-        ts.add(System.currentTimeMillis());
-    }
-
-    private String encodeToBase64(String s){
-        try {
-            byte[] data = s.getBytes("UTF-8");
-            return Base64.encodeToString(data, Base64.DEFAULT);
-        } catch (UnsupportedEncodingException e) {
-           return "";
-        }
+    void addNewTs(CustomTimeStamp customTimeStamp) {
+        ts.add(customTimeStamp);
     }
 }

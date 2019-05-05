@@ -13,6 +13,7 @@ import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.PowerManager;
 import android.support.annotation.RequiresApi;
@@ -23,6 +24,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 
 import bef.rest.befrest.befrest.Befrest;
@@ -46,7 +49,7 @@ import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 public class Util {
 
     private static String TAG = Util.class.getName();
-    public static int netWorkType = 0;
+    public static String netWorkType = "";
 
     public static String getIntentEvent(Intent intent) {
         if (intent != null) {
@@ -70,29 +73,69 @@ public class Util {
         return "NOT_ASSIGNED";
     }
 
+    //TODO : use NetworkCallBack
     @SuppressLint("MissingPermission")
     public static boolean isConnectedToInternet(Context context) {
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                NetworkRequest.Builder builder = new NetworkRequest.Builder();
+                cm.registerNetworkCallback(builder.build(), new ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(Network network) {
+                        super.onAvailable(network);
+                    }
+
+                    @Override
+                    public void onLost(Network network) {
+                        super.onLost(network);
+                    }
+                });
+            }
             NetworkInfo netInfo = cm.getActiveNetworkInfo();
             if (netInfo != null && (netInfo.isConnectedOrConnecting() || netInfo.isAvailable())) {
+                netWorkType = netInfo.getTypeName();
+                if (netInfo.getSubtypeName() != null && !netInfo.getSubtypeName().isEmpty())
+                    netWorkType = netWorkType + " - " + netInfo.getSubtypeName();
                 return true;
-            }
-            netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-            if (netInfo != null && netInfo.isConnectedOrConnecting()) {
-                netWorkType = 1;
-                return true;
-            } else {
-                netInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-                if (netInfo != null && netInfo.isConnectedOrConnecting()) {
-                    netWorkType = 2;
-                    return true;
-                }
             }
         } catch (Exception e) {
             return true;
         }
         return false;
+    }
+
+    static String md5(final String s) {
+        final String MD5 = "MD5";
+        try {
+            // Create MD5 Hash
+            MessageDigest digest = java.security.MessageDigest
+                    .getInstance(MD5);
+            digest.update(s.getBytes());
+            byte messageDigest[] = digest.digest();
+
+            // Create Hex String
+            StringBuilder hexString = new StringBuilder();
+            for (byte aMessageDigest : messageDigest) {
+                StringBuilder h = new StringBuilder(Integer.toHexString(0xFF & aMessageDigest));
+                while (h.length() < 2)
+                    h.insert(0, "0");
+                hexString.append(h);
+            }
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    static String toHexString(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 
     public static String getBroadcastSendingPermission(Context context) {
@@ -179,7 +222,7 @@ public class Util {
         return false;
     }
 
-    public static String encodeToBase64(String s){
+    public static String encodeToBase64(String s) {
         try {
             byte[] data = s.getBytes("UTF-8");
             return Base64.encodeToString(data, Base64.DEFAULT);
@@ -188,12 +231,13 @@ public class Util {
         }
     }
 
-    public static String stackTraceToString(Exception e){
+    public static String stackTraceToString(Exception e) {
         Writer result = new StringWriter();
         PrintWriter printWriter = new PrintWriter(result);
         e.printStackTrace(printWriter);
         return result.toString();
     }
+
     /**
      * use for fireBase
      */

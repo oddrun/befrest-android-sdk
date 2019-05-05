@@ -56,10 +56,6 @@ public class NetworkManager {
             CookieManager cookieManager = new CookieManager();
             if (header == null)
                 header = new HashMap<>();
-            //TODO : Rename Header Keys
-            header.put("VERSION_CODE", "");
-            header.put("BUILD_NUMBER", String.valueOf(Befrest.getInstance().getBuildNumber()));
-            header.put("DEVICE_MODEL", Util.getDeviceInfo());
             if (!url.startsWith("http") && !url.startsWith("https"))
                 return null;
             String cookies = getCookiesHeaderForUrl(cookieManager, url);
