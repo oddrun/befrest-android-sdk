@@ -6,6 +6,9 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -13,9 +16,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
 
@@ -27,7 +27,6 @@ import bef.rest.befrest.befrest.BefrestEvent;
 import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
-import bef.rest.befrest.utils.BefrestThreadFactory;
 import bef.rest.befrest.utils.MessageIdPersister;
 import bef.rest.befrest.utils.ReportManager;
 import bef.rest.befrest.utils.UrlConnection;
@@ -45,6 +44,7 @@ import static bef.rest.befrest.utils.SDKConst.CLOSE_PROTOCOL_ERROR;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_SERVER_ERROR;
 import static bef.rest.befrest.utils.SDKConst.CLOSE_UNAUTHORIZED;
 import static bef.rest.befrest.utils.SDKConst.HANDSHAKE_TIMEOUT_MESSAGE;
+import static bef.rest.befrest.utils.SDKConst.HANDSHAKE_TIME_OUT;
 import static bef.rest.befrest.utils.SDKConst.PING_INTERVAL;
 import static bef.rest.befrest.utils.SDKConst.PING_TIMEOUT;
 import static bef.rest.befrest.utils.SDKConst.PING_TIME_OUT_MESSAGE;
@@ -150,7 +150,7 @@ public class ConnectionManager extends Handler {
         BefrestMessage befrestMessage = new BefrestMessage(textMessage.payload);
         cancelFuturePing();
         pong(null);
-        if (befrestMessage.isCorrupted())
+        if (befrestMessage.isCorrupted() || befrestMessage.isConfigPush())
             return;
 
         switch (befrestMessage.getType()) {
@@ -169,7 +169,23 @@ public class ConnectionManager extends Handler {
                     lastReceivedMessages.save();
                 }
                 break;
+            case CONTROLLER:
+                handleControllers(befrestMessage);
+                break;
         }
+    }
+
+    private void handleControllers(BefrestMessage befrestMessage) {
+        String data = befrestMessage.getData();
+        try {
+            if (data != null) {
+                JSONObject confJson = new JSONObject(data);
+                JSONObject analyticsConf = confJson.getJSONObject("analyticsConf");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void sendAckToServer(String ackMessage) {
@@ -229,8 +245,8 @@ public class ConnectionManager extends Handler {
                 return false;
             }
             return pingIdList.remove(pongData);
-        }catch (Exception e){
-            WatchSdk.reportCrash(e,null);
+        } catch (Exception e) {
+            WatchSdk.reportCrash(e, null);
         }
         return false;
     }
@@ -331,7 +347,7 @@ public class ConnectionManager extends Handler {
                     wakeLock = acquireConnectWakeLock(wakeLock);
                     socketHelper.createSocket();
                     socketHelper.startWebSocketHandshake();
-                    postDelayed(disconnectIfWebSocketHandshakeTimeOut,7000);
+                    postDelayed(disconnectIfWebSocketHandshakeTimeOut, HANDSHAKE_TIME_OUT);
                     sendCacheReport();
                 } else {
                     BefrestLog.w(TAG, "Internet connection is not available");
@@ -346,11 +362,11 @@ public class ConnectionManager extends Handler {
             UrlConnection.getInstance().setPort(80);
             disconnectAndNotify("exception thrown during socket creation");
             e.printStackTrace();
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
         } catch (IOException e) {
             disconnectAndNotify(e.getMessage());
             e.printStackTrace();
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
         }
     }
 
@@ -397,7 +413,7 @@ public class ConnectionManager extends Handler {
             } else
                 BefrestLog.i(TAG, "reader already dead");
         } catch (Exception e) {
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
         }
         BefrestLog.i(TAG, "disconnect finish");
     }

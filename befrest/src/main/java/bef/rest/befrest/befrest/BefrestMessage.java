@@ -1,19 +1,41 @@
 package bef.rest.befrest.befrest;
 
+
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import bef.rest.befrest.utils.AnalyticsType;
+import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
+import static bef.rest.befrest.utils.AnalyticsType.BEFREST_CONNECTION_CHANGE;
+import static bef.rest.befrest.utils.AnalyticsType.CANNOT_CONNECT;
+import static bef.rest.befrest.utils.AnalyticsType.CONNECTION_LOST;
+import static bef.rest.befrest.utils.AnalyticsType.INVALID_PONG;
+import static bef.rest.befrest.utils.AnalyticsType.NETWORK_DISCONNECTED;
+import static bef.rest.befrest.utils.AnalyticsType.RETRY;
+import static bef.rest.befrest.utils.AnalyticsType.TRY_TO_CONNECT;
+import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
+import static bef.rest.befrest.utils.BefrestPreferences.saveBoolean;
+import static bef.rest.befrest.utils.SDKConst.ANALYTIC_CONF;
+import static bef.rest.befrest.utils.SDKConst.CRASH_CONF;
+import static bef.rest.befrest.utils.SDKConst.INTERRUPTED_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.IO_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.JSON_Exception;
+import static bef.rest.befrest.utils.SDKConst.SOCKET_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.SOCKET_TIMEOUT_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.SSL_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.URI_SYNTAX_EXCEPTION;
+import static bef.rest.befrest.utils.SDKConst.WEB_SOCKET_EXCEPTION;
+
 public final class BefrestMessage implements Parcelable {
+    private static final String TAG = "BefrestMessage";
 
     public enum MsgType {
-        NORMAL, BATCH, PONG, TOPIC, GROUP
+        NORMAL, BATCH, PONG, TOPIC, GROUP, CONTROLLER
     }
 
     private MsgType type;
@@ -21,12 +43,17 @@ public final class BefrestMessage implements Parcelable {
     private String timeStamp;
     private String msgId;
     private boolean isCorrupted;
+    private boolean isConfigPush;
 
     public BefrestMessage(String rawMsg) {
         try {
             JSONObject jsObject = new JSONObject(rawMsg);
             parseMessageV2(jsObject);
-            } catch (JSONException e) {
+            if (MsgType.CONTROLLER.equals(type)) {
+                isConfigPush = true;
+                parseConfigData();
+            }
+        } catch (JSONException e) {
             isCorrupted = true;
             reportCorruptedMessageAnomaly(e, rawMsg);
         } catch (Exception e) {
@@ -40,6 +67,54 @@ public final class BefrestMessage implements Parcelable {
         }
     }
 
+    private void parseConfigData() {
+        try {
+            if (!Befrest.getInstance().isBefrestInitialized() && getPrefs() == null) {
+                BefrestLog.e(TAG, "Befrest is not initialized yet");
+                return;
+            }
+            JSONObject configJson = new JSONObject(data);
+            if (configJson.has(ANALYTIC_CONF)) {
+                JSONObject analyticConf = configJson.getJSONObject(ANALYTIC_CONF);
+                if (analyticConf.has(TRY_TO_CONNECT.name()))
+                    saveBoolean(TRY_TO_CONNECT.name(), analyticConf.getBoolean(TRY_TO_CONNECT.name()));
+                if (analyticConf.has(CONNECTION_LOST.name()))
+                    saveBoolean(CONNECTION_LOST.name(), analyticConf.getBoolean(CONNECTION_LOST.name()));
+                if (analyticConf.has(CANNOT_CONNECT.name()))
+                    saveBoolean(CANNOT_CONNECT.name(), analyticConf.getBoolean(CANNOT_CONNECT.name()));
+                if (analyticConf.has(INVALID_PONG.name()))
+                    saveBoolean(INVALID_PONG.name(), analyticConf.getBoolean(INVALID_PONG.name()));
+                if (analyticConf.has(NETWORK_DISCONNECTED.name()))
+                    saveBoolean(NETWORK_DISCONNECTED.name(), analyticConf.getBoolean(NETWORK_DISCONNECTED.name()));
+                if (analyticConf.has(BEFREST_CONNECTION_CHANGE.name()))
+                    saveBoolean(BEFREST_CONNECTION_CHANGE.name(), analyticConf.getBoolean(BEFREST_CONNECTION_CHANGE.name()));
+                if (analyticConf.has(RETRY.name()))
+                    saveBoolean(RETRY.name(), analyticConf.getBoolean(RETRY.name()));
+            }
+            if (configJson.has(CRASH_CONF)) {
+                JSONObject crashConf = configJson.getJSONObject(CRASH_CONF);
+                if (crashConf.has(URI_SYNTAX_EXCEPTION))
+                    saveBoolean(URI_SYNTAX_EXCEPTION, crashConf.getBoolean(URI_SYNTAX_EXCEPTION));
+                if (crashConf.has(JSON_Exception))
+                    saveBoolean(JSON_Exception, crashConf.getBoolean(JSON_Exception));
+                if (crashConf.has(WEB_SOCKET_EXCEPTION))
+                    saveBoolean(WEB_SOCKET_EXCEPTION, crashConf.getBoolean(WEB_SOCKET_EXCEPTION));
+                if (crashConf.has(SOCKET_EXCEPTION))
+                    saveBoolean(URI_SYNTAX_EXCEPTION, crashConf.getBoolean(URI_SYNTAX_EXCEPTION));
+                if (crashConf.has(IO_EXCEPTION))
+                    saveBoolean(IO_EXCEPTION, crashConf.getBoolean(IO_EXCEPTION));
+                if (crashConf.has(INTERRUPTED_EXCEPTION))
+                    saveBoolean(INTERRUPTED_EXCEPTION, crashConf.getBoolean(INTERRUPTED_EXCEPTION));
+                if (crashConf.has(SOCKET_TIMEOUT_EXCEPTION))
+                    saveBoolean(SOCKET_TIMEOUT_EXCEPTION, crashConf.getBoolean(SOCKET_TIMEOUT_EXCEPTION));
+                if (crashConf.has(SSL_EXCEPTION))
+                    saveBoolean(SSL_EXCEPTION, crashConf.getBoolean(SSL_EXCEPTION));
+
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void reportCorruptedMessageAnomaly(Exception e, String rawMsg) {
         WatchSdk.reportCrash(e, rawMsg);
@@ -72,6 +147,8 @@ public final class BefrestMessage implements Parcelable {
                 break;
             case "4":
                 type = MsgType.GROUP;
+            case "5":
+                type = MsgType.CONTROLLER;
                 break;
             default:
                 throw new JSONException("unKnown Push Type!");
@@ -117,6 +194,10 @@ public final class BefrestMessage implements Parcelable {
 
     public boolean isCorrupted() {
         return isCorrupted;
+    }
+
+    public boolean isConfigPush() {
+        return isConfigPush;
     }
 
     public MsgType getType() {

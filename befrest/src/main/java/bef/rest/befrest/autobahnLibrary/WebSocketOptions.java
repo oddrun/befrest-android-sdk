@@ -1,6 +1,8 @@
 package bef.rest.befrest.autobahnLibrary;
 
 
+import static bef.rest.befrest.utils.SDKConst.HANDSHAKE_TIME_OUT;
+
 /**
  * WebSockets connection options. This can be supplied to WebSocketConnection in connect().
  * Note that the latter copies the options provided to connect(), so any change after
@@ -26,7 +28,7 @@ public class WebSocketOptions {
       mMaxMessagePayloadSize = 128 * 1024; // much more than 32k
       mReceiveTextMessagesRaw = false;
       mTcpNoDelay = true;
-      mSocketConnectTimeout = 6000;
+      mSocketConnectTimeout = HANDSHAKE_TIME_OUT;
       mValidateIncomingUtf8 = true;
       mMaskClientFrames = true;
    }

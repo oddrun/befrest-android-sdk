@@ -29,9 +29,9 @@ public class BefrestPreferences {
     public static final String PREF_TOPICS = "PREF_TOPICS";
     static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
-    public static final String PREF_CACHE_LIFE_TIME = "PREF_CACHE_LIFE_TIME";
-    public static final String PREF_CRASH = "PREF_CRASH";
-    public static final String PREF_ANALYTICS = "PREF_ANALYTIC";
+    static final String PREF_CACHE_LIFE_TIME = "PREF_CACHE_LIFE_TIME";
+    static final String PREF_CRASH = "PREF_CRASH";
+    static final String PREF_ANALYTICS = "PREF_ANALYTIC";
 
     public static SharedPreferences getPrefs() {
         String SHARED_PREFERENCES_NAME = "rest.bef.SHARED_PREFERENCES";
@@ -59,7 +59,7 @@ public class BefrestPreferences {
         editor.apply();
     }
 
-    static void saveBoolean(String key, boolean value) {
+    public static void saveBoolean(String key, boolean value) {
         Editor editor = getPrefs().edit();
         editor.putBoolean(key, value);
         editor.apply();

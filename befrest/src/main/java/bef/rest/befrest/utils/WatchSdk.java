@@ -5,9 +5,16 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import org.json.JSONException;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.SocketException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+
+import bef.rest.befrest.autobahnLibrary.WebSocketException;
 
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_ANALYTICS;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_CRASH;
@@ -51,9 +58,8 @@ public class WatchSdk {
 
     public static void reportCrash(Exception e, String data) {
         try {
-            if (isAllowToCollect(e)) {
-
-            }
+            if (!isAllowToCollect(e))
+                return;
             Map<String, Crash> crashMap = new HashMap<>();
             String currentStackTrace = encodeToBase64(stackTraceToString(e));
             String key = toHexString(md5(currentStackTrace).getBytes());
@@ -84,10 +90,17 @@ public class WatchSdk {
     }
 
     private static boolean isAllowToCollect(Exception e) {
-        return true;
+        if (getPrefs() != null) {
+            String exceptionSimpleName = e.getClass().getSimpleName();
+            return getPrefs().getBoolean(exceptionSimpleName, false);
+        }
+        return false;
     }
+
     private static boolean isAllowToCollect(AnalyticsType analyticsType) {
-        return true;
+        if (getPrefs() != null)
+            return getPrefs().getBoolean(analyticsType.name(), false);
+        return false;
     }
 
     private static void cacheAnalytics(Analytics analytics, String extraParam) {
