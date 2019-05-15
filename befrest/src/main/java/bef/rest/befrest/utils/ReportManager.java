@@ -2,16 +2,12 @@ package bef.rest.befrest.utils;
 
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.util.Log;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,6 +20,7 @@ import java.util.Map;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_ANALYTICS;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_CACHE_LIFE_TIME;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_CRASH;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_LIVE_CACHE;
 import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
 
 public class ReportManager extends AsyncTask<Void, Void, Void> {
@@ -34,7 +31,6 @@ public class ReportManager extends AsyncTask<Void, Void, Void> {
     private JsonObject analyticJson;
     private JsonObject crashJson;
 
-
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
@@ -42,30 +38,80 @@ public class ReportManager extends AsyncTask<Void, Void, Void> {
 
     @Override
     protected Void doInBackground(Void... voids) {
-        SharedPreferences prefs = getPrefs();
-        if (prefs != null) {
-            isQueueLengthMoreThanFive(prefs);
-            long cacheLifeTime = prefs.getLong(PREF_CACHE_LIFE_TIME, 0);
-            if (cacheLifeTime == 0) {
-                prefs.edit().putLong(PREF_CACHE_LIFE_TIME, System.currentTimeMillis()).apply();
-                BefrestLog.d(TAG, "set cache lifetime for analytics and crash");
-                return null;
-            } else {
-                if ((System.currentTimeMillis() - cacheLifeTime) <= 172800000
-                        && isQueueLengthMoreThanFive(prefs)) {
-
-                } else {
-
+        try {
+            SharedPreferences prefs = getPrefs();
+            if (prefs != null) {
+                long liveCacheData = prefs.getLong(PREF_LIVE_CACHE, 0);
+                if (liveCacheData == 0) {
+                    prefs.edit().putLong(PREF_LIVE_CACHE, System.currentTimeMillis()).apply();
+                    BefrestLog.d(TAG, "set cache lifetime for analytics and crash");
+                    return null;
                 }
+                loadCrashAndAnalyticToMap(prefs);
+                if ((System.currentTimeMillis() - liveCacheData) <= loadCacheLifeTime(prefs)) {
+                    if (isQueueLengthMoreThan20())
+                        sendToServer();
+                } else
+                    sendToServer();
             }
-
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
 
-    /**
-     * use for send to server
-     */
+    private long loadCacheLifeTime(SharedPreferences prefs) {
+        //2 day default
+        return prefs.getLong(PREF_CACHE_LIFE_TIME, 172_800_000);
+    }
+
+    private void loadCrashAndAnalyticToMap(SharedPreferences sharedPrefs) {
+        BefrestLog.i(TAG, "load crash and analytic data to send server");
+        crashMap = new HashMap<>();
+        String cache = sharedPrefs.getString(PREF_CRASH, "");
+        if (cache != null && !cache.isEmpty()) {
+            Type type = new TypeToken<HashMap<String, Crash>>() {
+            }.getType();
+            crashMap = gson.fromJson(cache, type);
+        }
+        analyticMap = new HashMap<>();
+        cache = sharedPrefs.getString(PREF_ANALYTICS, "");
+        if (cache != null && !cache.isEmpty()) {
+            Type type = new TypeToken<HashMap<AnalyticsType, Analytics>>() {
+            }.getType();
+            analyticMap = gson.fromJson(cache, type);
+        }
+    }
+
+    private void clearAnalyticCache() {
+        if (getPrefs() != null) {
+            getPrefs().edit().putString(PREF_ANALYTICS, "").apply();
+        }
+    }
+
+    private void clearCrashCache() {
+        if (getPrefs() != null) {
+            getPrefs().edit().putString(PREF_CRASH, "").apply();
+        }
+    }
+
+    private void sendToServer() throws JSONException {
+        prepareData();
+        String url = NetworkManager.getInstance().generateReportUrl();
+        String analyticResponse = NetworkManager.getInstance().
+                getResponseFromUrl(url, SDKConst.PUT_REQUEST, null, null, analyticJson.toString());
+        String crashResponse = NetworkManager.getInstance().
+                getResponseFromUrl(url, SDKConst.PUT_REQUEST, null, null, crashJson.toString());
+        if (analyticResponse != null) {
+            if (new JSONObject(analyticResponse).getInt("errorCode") == 0)
+                clearAnalyticCache();
+            if (new JSONObject(crashResponse).getInt("errorCode") == 0)
+                clearCrashCache();
+        }
+    }
+
     private void prepareData() {
         List<Analytics> analyticsList = new ArrayList<>();
         List<Crash> crashList = new ArrayList<>();
@@ -81,28 +127,14 @@ public class ReportManager extends AsyncTask<Void, Void, Void> {
         crashJson.add("crash", crash);
     }
 
-    private boolean isQueueLengthMoreThanFive(SharedPreferences sharedPrefs) {
-        String cache = sharedPrefs.getString(PREF_CRASH, "");
-        Log.i(TAG, "isQueueLengthMoreThanFive: " + cache);
-        if (cache != null && !cache.isEmpty()) {
-            Type type = new TypeToken<HashMap<String, Crash>>() {
-            }.getType();
-            crashMap = gson.fromJson(cache, type);
-            for (Map.Entry<String, Crash> entry : crashMap.entrySet())
-                if (entry.getValue() != null && entry.getValue().getTs().size() > 20)
-                    return true;
-        }
+    private boolean isQueueLengthMoreThan20() {
+        for (Map.Entry<String, Crash> entry : crashMap.entrySet())
+            if (entry.getValue() != null && entry.getValue().getTs().size() > 20)
+                return true;
 
-        cache = sharedPrefs.getString(PREF_ANALYTICS, "");
-        Log.i(TAG, "isQueueLengthMoreThanFive: analytic" + cache);
-        if (cache != null && !cache.isEmpty()) {
-            Type type = new TypeToken<HashMap<AnalyticsType, Analytics>>() {
-            }.getType();
-            analyticMap = gson.fromJson(cache, type);
-            for (Map.Entry<AnalyticsType, Analytics> entry : analyticMap.entrySet())
-                if (entry.getValue() != null && entry.getValue().getTs().size() > 20)
-                    return true;
-        }
+        for (Map.Entry<AnalyticsType, Analytics> entry : analyticMap.entrySet())
+            if (entry.getValue() != null && entry.getValue().getTs().size() > 20)
+                return true;
         return false;
     }
 

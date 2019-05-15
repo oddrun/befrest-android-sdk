@@ -1,26 +1,31 @@
-package bef.rest.befrest.befrest;
+package bef.rest.befrest;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 
 import java.util.Arrays;
 import java.util.List;
 
-import bef.rest.befrest.BackgroundService;
-import bef.rest.befrest.PushService;
+import bef.rest.befrest.befrest.BefrestAppDelegate;
+import bef.rest.befrest.befrest.BefrestAppLifeCycle;
+import bef.rest.befrest.befrest.BefrestConnectionMode;
+import bef.rest.befrest.befrest.BefrestContract;
+import bef.rest.befrest.befrest.BefrestReceiver;
 import bef.rest.befrest.clientData.ClientData;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
+import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
+import static bef.rest.befrest.utils.SDKConst.ACTION_BEFREST_PUSH;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.OREO_SDK_INT;
-import static bef.rest.befrest.utils.SDKConst.PING;
 import static bef.rest.befrest.utils.SDKConst.REFRESH;
 import static bef.rest.befrest.utils.SDKConst.SDK_INT;
 
@@ -32,7 +37,7 @@ public class Befrest implements BefrestAppDelegate {
     private boolean isBefrestStart;
     private boolean wantToStart;
     private BefrestConnectionMode befrestConnectionMode = BefrestConnectionMode.DISCONNECTED;
-    private int buildNumber = 1;
+    private static final int BUILD_NUMBER = 8;
 
     private BefrestAppLifeCycle befrestAppLifeCycle;
     private boolean isServiceRunning = false;
@@ -64,21 +69,24 @@ public class Befrest implements BefrestAppDelegate {
         Befrest.getInstance().setContext(context);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void setUId(int uid) {
         ClientData.getInstance().setUId(uid);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void setChId(String chId) {
         if (chId == null || !(chId.length() > 0))
             throw new RuntimeException("invalid chId");
         ClientData.getInstance().setChId(chId);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void setAuthToken(String authToken) {
         ClientData.getInstance().setAuthToken(authToken);
     }
 
-    public Befrest setData(int uId, String chId, String authToken) {
+    public Befrest setClientData(int uId, String chId, String authToken) {
         setUId(uId);
         setChId(chId);
         setAuthToken(authToken);
@@ -97,13 +105,17 @@ public class Befrest implements BefrestAppDelegate {
     private void watchAppLifeCycle() {
         befrestAppLifeCycle = new BefrestAppLifeCycle(this);
         context.registerComponentCallbacks(befrestAppLifeCycle);
-        ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
+        try {
+            ((Application) context).registerActivityLifecycleCallbacks(befrestAppLifeCycle);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * @param customPushService that befrest will start This class must extend rest.bef.PushService
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "UnusedReturnValue"})
     public Befrest setCustomPushService(Class<? extends PushService> customPushService) {
         if (customPushService == null) {
             BefrestLog.w(TAG, "custom PushService can't be null");
@@ -209,7 +221,7 @@ public class Befrest implements BefrestAppDelegate {
         }
     }
 
-    public void startService(String event) {
+    void startService(String event) {
         try {
             BefrestLog.i(TAG, "Start Service : with event " + event);
             isServiceRunning = true;
@@ -219,7 +231,7 @@ public class Befrest implements BefrestAppDelegate {
             isBefrestStart = true;
         } catch (IllegalStateException e) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WatchSdk.reportCrash(e,null);
+                WatchSdk.reportCrash(e, null);
                 setupJobScheduler();
             }
         }
@@ -248,13 +260,17 @@ public class Befrest implements BefrestAppDelegate {
         BefrestLog.d(TAG, "want to Start is " + wantToStart + " , Api Level is : " + SDK_INT);
     }
 
-    public void unregisterWatchAppLifeCycle() {
-        ((Application) context).unregisterActivityLifecycleCallbacks(befrestAppLifeCycle);
+    void unregisterWatchAppLifeCycle() {
+        try {
+            ((Application) context).unregisterActivityLifecycleCallbacks(befrestAppLifeCycle);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onAppForeground() {
-        BefrestLog.i(TAG, "application is in foreground   currently");
+        BefrestLog.i(TAG, "application is in foreground currently");
         if (!isBefrestStart && wantToStart) {
             if (SDK_INT >= OREO_SDK_INT) {
                 JobServiceManager.getInstance().cancelJob();
@@ -271,7 +287,7 @@ public class Befrest implements BefrestAppDelegate {
         ClientData.getInstance().setLogLevel(logLevel);
     }
 
-    public void setBefrestStart(boolean befrestStart) {
+    void setBefrestStart(boolean befrestStart) {
         isBefrestStart = befrestStart;
     }
 
@@ -279,11 +295,11 @@ public class Befrest implements BefrestAppDelegate {
         return context;
     }
 
-    Class<?> getPushService() {
+    public Class<?> getPushService() {
         return pushService;
     }
 
-    public boolean isBefrestStart() {
+    boolean isBefrestStart() {
         return isBefrestStart;
     }
 
@@ -294,21 +310,57 @@ public class Befrest implements BefrestAppDelegate {
     public String[] getTopics() {
         try {
             return ClientData.getInstance().getTopics().split("-");
-        }catch (Exception e){
-            WatchSdk.reportCrash(e,null);
+        } catch (Exception e) {
+            WatchSdk.reportCrash(e, null);
         }
         return "".split("-");
     }
 
-    public boolean isWantToStart() {
+    @SuppressWarnings("unused")
+    public void commitTopics() {
+        stop();
+        start();
+    }
+
+    /**
+     * Register a new push receiver. Any registered receiver <i><b>must be</b></i> unregistered
+     * by passing the same receiver object to {@link #unregisterPushReceiver}. Actually the method
+     * registers a BroadcastReceiver considering security using permissions.
+     *
+     * @param receiver the receiver object that will receive events
+     */
+    public void registerPushReceiver(BefrestReceiver receiver) {
+        try {
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(ACTION_BEFREST_PUSH);
+            context.registerReceiver(receiver, intentFilter, Util.getBroadcastSendingPermission(context), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Unregister a previously registered push receiver.
+     *
+     * @param receiver receiver object to be unregistered
+     */
+    public void unregisterPushReceiver(BefrestReceiver receiver) {
+        try {
+            context.unregisterReceiver(receiver);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    boolean isWantToStart() {
         return wantToStart;
     }
 
-    public boolean isServiceRunning() {
+    boolean isServiceRunning() {
         return isServiceRunning;
     }
 
-    public void setServiceRunning(boolean serviceRunning) {
+    void setServiceRunning(boolean serviceRunning) {
         isServiceRunning = serviceRunning;
     }
 
@@ -317,18 +369,22 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     public int getBuildNumber() {
-        return buildNumber;
+        return BUILD_NUMBER;
     }
 
     public void setBackgroundService(Class<?> backgroundService) {
         this.backgroundService = backgroundService;
     }
 
+    public void test(){
+        startService("TEST");
+    }
+
     public BefrestConnectionMode getBefrestConnectionMode() {
         return befrestConnectionMode;
     }
 
-    public void setBefrestConnectionMode(BefrestConnectionMode befrestConnectionMode) {
+    void setBefrestConnectionMode(BefrestConnectionMode befrestConnectionMode) {
         this.befrestConnectionMode = befrestConnectionMode;
     }
 
@@ -336,5 +392,6 @@ public class Befrest implements BefrestAppDelegate {
     public boolean isBefrestInitialized() {
         return getContext() != null;
     }
+
 
 }

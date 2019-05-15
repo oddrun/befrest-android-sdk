@@ -16,7 +16,6 @@ import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.PowerManager;
-import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -28,11 +27,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 
-import bef.rest.befrest.befrest.Befrest;
-import bef.rest.befrest.befrest.BefrestConnectivityChangeReceiver;
+import bef.rest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestMessage;
 
-import static bef.rest.befrest.utils.SDKConst.BEFREST_CONNECTED;
 import static bef.rest.befrest.utils.SDKConst.BROADCAST_SENDING_PERMISSION_POSTFIX;
 import static bef.rest.befrest.utils.SDKConst.CONNECT;
 import static bef.rest.befrest.utils.SDKConst.KEEP_PINGING;
@@ -49,7 +46,7 @@ import static bef.rest.befrest.utils.SDKConst.prevFailedConnectTries;
 public class Util {
 
     private static String TAG = Util.class.getName();
-    public static String netWorkType = "";
+    static String netWorkType = "";
 
     public static String getIntentEvent(Intent intent) {
         if (intent != null) {
@@ -69,6 +66,8 @@ public class Util {
                 return PING;
             if (intent.getBooleanExtra(KEEP_PINGING, false))
                 return KEEP_PINGING;
+            if (intent.getBooleanExtra("TEST", false))
+                return "TEST";
         }
         return "NOT_ASSIGNED";
     }
@@ -222,7 +221,7 @@ public class Util {
         return false;
     }
 
-    public static String encodeToBase64(String s) {
+    static String encodeToBase64(String s) {
         try {
             byte[] data = s.getBytes("UTF-8");
             return Base64.encodeToString(data, Base64.DEFAULT);
@@ -231,7 +230,7 @@ public class Util {
         }
     }
 
-    public static String stackTraceToString(Exception e) {
+    static String stackTraceToString(Exception e) {
         Writer result = new StringWriter();
         PrintWriter printWriter = new PrintWriter(result);
         e.printStackTrace(printWriter);

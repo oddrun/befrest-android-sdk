@@ -11,7 +11,7 @@ public class BefrestAppLifeCycle implements Application.ActivityLifecycleCallbac
     private BefrestAppDelegate befrestAppDelegate;
     private boolean isForeground = false;
 
-    BefrestAppLifeCycle(BefrestAppDelegate befrestAppDelegate) {
+    public BefrestAppLifeCycle(BefrestAppDelegate befrestAppDelegate) {
         this.befrestAppDelegate = befrestAppDelegate;
     }
 

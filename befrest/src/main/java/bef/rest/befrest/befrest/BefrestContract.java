@@ -9,11 +9,12 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.SystemClock;
 
+import bef.rest.befrest.Befrest;
+import bef.rest.befrest.BefrestConnectivityChangeReceiver;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
-import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
 import static bef.rest.befrest.utils.SDKConst.ACTION_BEFREST_PUSH;
 import static bef.rest.befrest.utils.SDKConst.BROADCAST_TYPE;
 import static bef.rest.befrest.utils.SDKConst.KEY_TIME_SENT;
@@ -52,7 +53,7 @@ public class BefrestContract {
         }
     }
 
-    void registerBroadcastReceiver() {
+    public void registerBroadcastReceiver() {
         try {
             if (!Befrest.getInstance().isBefrestInitialized()) {
                 BefrestLog.e(TAG, "Befrest not initialized call Befrest.init() in Application Class");
@@ -66,7 +67,7 @@ public class BefrestContract {
         }
     }
 
-    void unRegisterBroadCastReceiver() {
+    public void unRegisterBroadCastReceiver() {
         try {
             if (!Befrest.getInstance().isBefrestInitialized()) {
                 BefrestLog.e(TAG, "Befrest not initialized call Befrest.init() in Application Class");

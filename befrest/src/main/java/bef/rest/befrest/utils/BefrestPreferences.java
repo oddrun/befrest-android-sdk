@@ -19,19 +19,21 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
-import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.Befrest;
 
 public class BefrestPreferences {
-
     public static final String PREF_U_ID = "PREF_U_ID";
     public static final String PREF_AUTH = "PREF_AUTH";
     public static final String PREF_CH_ID = "PREF_CH_ID";
-    public static final String PREF_TOPICS = "PREF_TOPICS";
-    static final String PREF_LOG_LEVEL = "PREF_LOG_LEVEL";
     static final String PREF_LAST_RECEIVED_MESSAGES = "PREF_LAST_RECEIVED_MESSAGES";
-    static final String PREF_CACHE_LIFE_TIME = "PREF_CACHE_LIFE_TIME";
+    public static final String PREF_TOPIC= "PREF_TOPIC";
+    static final String PREF_LIVE_CACHE = "PREF_LIVE_CACHE";
     static final String PREF_CRASH = "PREF_CRASH";
     static final String PREF_ANALYTICS = "PREF_ANALYTIC";
+    public static final String PREF_PING_INTERVAL = "pingInterval";
+    public static final String PREF_PING_TIMEOUT = "pingTimeOut";
+    public static final String PREF_HANDSHAKE_TIMEOUT = "handshakeTimeOut";
+    public static final String PREF_CACHE_LIFE_TIME = "cacheLifeTime";
 
     public static SharedPreferences getPrefs() {
         String SHARED_PREFERENCES_NAME = "rest.bef.SHARED_PREFERENCES";
@@ -42,47 +44,33 @@ public class BefrestPreferences {
     }
 
     public static void saveInt(String key, int value) {
+        if (getPrefs() == null)
+            return;
         Editor editor = getPrefs().edit();
         editor.putInt(key, value);
         editor.apply();
     }
 
     public static void saveString(String key, String value) {
+        if (getPrefs() == null)
+            return;
         Editor editor = getPrefs().edit();
         editor.putString(key, value);
         editor.apply();
     }
 
-    static void saveFloat(String key, float value) {
-        Editor editor = getPrefs().edit();
-        editor.putFloat(key, value);
-        editor.apply();
-    }
-
     public static void saveBoolean(String key, boolean value) {
+        if (getPrefs() == null)
+            return;
         Editor editor = getPrefs().edit();
         editor.putBoolean(key, value);
         editor.apply();
     }
-
     public static void saveLong(String key, long value) {
+        if (getPrefs() == null)
+            return;
         Editor editor = getPrefs().edit();
         editor.putLong(key, value);
         editor.apply();
-    }
-
-    public static void saveToPrefs(int uId, String AUTH, String chId) {
-        Editor prefEditor = getPrefs().edit();
-        prefEditor.putInt(PREF_U_ID, uId);
-        prefEditor.putString(PREF_AUTH, AUTH);
-        prefEditor.putString(PREF_CH_ID, chId);
-        prefEditor.apply();
-    }
-
-    static void removePrefs() {
-        Editor editor = getPrefs().edit();
-        editor.clear();
-        editor.apply();
-
     }
 }

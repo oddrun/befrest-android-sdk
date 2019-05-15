@@ -1,5 +1,7 @@
 package bef.rest.befrest.utils;
 
+import android.util.Log;
+
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -23,6 +25,7 @@ import static bef.rest.befrest.utils.BefrestPreferences.saveString;
  * limitations under the License.
  ******************************************************************************/
 public class MessageIdPersister extends BoundedLinkedHashSet<String> {
+    int i = 0 ;
 
     public MessageIdPersister() {
         super(100);
@@ -38,6 +41,7 @@ public class MessageIdPersister extends BoundedLinkedHashSet<String> {
     }
 
     public void save() {
+        Log.i("AKA", "save: "+ ++i);
         saveString(PREF_LAST_RECEIVED_MESSAGES, toString());
     }
 

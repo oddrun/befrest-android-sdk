@@ -3,30 +3,24 @@ package bef.rest.befrest.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.Befrest;
 import bef.rest.befrest.clientData.ClientData;
 
 public class Crash extends Report {
 
-    private String data;
     private String stackTrace;
     private List<CustomTimeStamp> ts;
 
 
-    private Crash(String stackTrace) {
+    Crash(String stackTrace) {
         super(Befrest.getInstance().getBuildNumber(),Util.getDeviceInfo(),
                 Befrest.getInstance().getContext().getPackageName(), SDKConst.SDK_INT,
-                ClientData.getInstance().getChId());
+                ClientData.getInstance().getChId(),ClientData.getInstance().getUId());
         this.stackTrace = stackTrace;
         ts = new ArrayList<>();
     }
 
-    Crash(String stackTrace, String data) {
-        this(stackTrace);
-        this.data = data;
-    }
-
-    public List<CustomTimeStamp> getTs() {
+    List<CustomTimeStamp> getTs() {
         return ts;
     }
 

@@ -2,8 +2,6 @@ package bef.rest.befrest.utils;
 
 import android.os.Build;
 
-import bef.rest.befrest.befrest.Befrest;
-
 public class SDKConst {
     //events
     public static final String NETWORK_CONNECTED = "NETWORK_CONNECTED";
@@ -14,8 +12,6 @@ public class SDKConst {
     public static final String RETRY = "RETRY";
     public static final String PING = "PING";
     static final String KEEP_PINGING = "KEEP_PINGING";
-    public static int[] PING_INTERVAL = {9 * 1000, 15 * 1000, 20 * 1000};
-    public static final int PING_TIMEOUT = 3 * 1000;
     static final int[] RETRY_INTERVAL = {0, 5 * 1000, 7 * 1000, 10 * 1000, 18 * 1000, 40 * 1000, 100 * 1000, 240 * 1000};
     public static final int[] AuthProblemBroadcastDelay = {0, 60 * 1000, 240 * 1000, 600 * 1000};
     public static final int START_ALARM_CODE = 676428;
@@ -46,12 +42,11 @@ public class SDKConst {
     public static final int CLOSE_INTERNAL_ERROR = 5;
     public static final int CLOSE_SERVER_ERROR = 6;
     public static final int CLOSE_HANDSHAKE_TIME_OUT = 7;
-    public static int HANDSHAKE_TIME_OUT = 7000;
     public static final int CLOSE_UNAUTHORIZED = 8;
     public static final int CLOSE_CONNECTION_NOT_RESPONDING = 9;
     public static String HANDSHAKE_TIMEOUT_MESSAGE = "Hand shake time out after "
             + 7000 + "ms";
-    public static final String PING_TIME_OUT_MESSAGE = "connection did not respond to ping message after " + PING_TIMEOUT + "ms";
+    public static final String PING_TIME_OUT_MESSAGE = "connection did not respond to ping message";
     //constant for config push
     public static final String ANALYTIC_CONF = "analyticsConf";
     public static final String CRASH_CONF = "crashConf";
@@ -64,6 +59,7 @@ public class SDKConst {
     public static final String SOCKET_TIMEOUT_EXCEPTION = "SocketTimeoutException";
     public static final String SSL_EXCEPTION ="SSLException";
     public static final String EXCEPTION = "Exception";
+    public static final String PUT_REQUEST="PUT";
 
 
     /**

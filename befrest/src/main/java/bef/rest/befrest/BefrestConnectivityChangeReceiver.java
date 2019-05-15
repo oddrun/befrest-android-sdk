@@ -13,7 +13,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-package bef.rest.befrest.befrest;
+package bef.rest.befrest;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

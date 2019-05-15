@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Base64;
+import android.util.Log;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -29,6 +30,8 @@ import java.util.Random;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.NameValuePair;
 import bef.rest.befrest.utils.WatchSdk;
+
+import static android.content.ContentValues.TAG;
 
 
 /*
@@ -49,6 +52,7 @@ public class WebSocketWriter extends Handler {
     private BufferedOutputStream mBufferedOutputStream;
     private Socket mSocket;
     private boolean mActive;
+    int i = 0;
 
 
     /**
@@ -270,6 +274,7 @@ public class WebSocketWriter extends Handler {
     private void sendTextMessage(WebSocketMessage.TextMessage message) throws IOException, WebSocketException {
         byte[] payload = message.payload.getBytes("UTF-8");
         if (payload.length > mOptions.getMaxMessagePayloadSize()) {
+            Log.i("AckTest", "sendTextMessage: exception");
             throw new WebSocketException("message payload exceeds payload limit");
         }
         sendFrame(1, payload);
@@ -357,6 +362,8 @@ public class WebSocketWriter extends Handler {
                 }
             }
             mBufferedOutputStream.write(payload, 0, length);
+            Log.i("AckTest", "sendFrame: " + payload);
+            mBufferedOutputStream.flush();
         }
     }
 
@@ -370,8 +377,8 @@ public class WebSocketWriter extends Handler {
     @Override
     public void handleMessage(Message msg) {
         try {
+            Log.i(TAG, "AckTest handleMessage: ");
             processMessage(msg.obj);
-
             if (mActive && mSocket.isConnected() && !mSocket.isClosed()) {
                 mBufferedOutputStream.flush();
             }

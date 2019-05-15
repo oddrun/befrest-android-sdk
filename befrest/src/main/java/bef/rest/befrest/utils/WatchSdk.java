@@ -5,16 +5,9 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONException;
-
-import java.io.IOException;
 import java.lang.reflect.Type;
-import java.net.SocketException;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-
-import bef.rest.befrest.autobahnLibrary.WebSocketException;
 
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_ANALYTICS;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_CRASH;
@@ -29,7 +22,7 @@ public class WatchSdk {
     private static final String TAG = "WatchSdk";
 
     public static void reportAnalytics(AnalyticsType analyticsType, Object... o) {
-        if (!isAllowToCollect(analyticsType))
+        if (!isAllowedToCollect(analyticsType))
             return;
         switch (analyticsType) {
             case CONNECTION_LOST:
@@ -58,7 +51,7 @@ public class WatchSdk {
 
     public static void reportCrash(Exception e, String data) {
         try {
-            if (!isAllowToCollect(e))
+            if (!isAllowedToCollect(e))
                 return;
             Map<String, Crash> crashMap = new HashMap<>();
             String currentStackTrace = encodeToBase64(stackTraceToString(e));
@@ -73,9 +66,8 @@ public class WatchSdk {
                     crashMap = gson.fromJson(stringCrash, type);
                 }
                 Crash crash = crashMap.get(key);
-                if (crash == null) {
-                    crash = new Crash(currentStackTrace, null);
-                }
+                if (crash == null)
+                    crash = new Crash(currentStackTrace);
                 CustomTimeStamp ts = new CustomTimeStamp(System.currentTimeMillis(), netWorkType, data);
                 crash.addNewTs(ts);
                 crashMap.put(key, crash);
@@ -87,20 +79,6 @@ public class WatchSdk {
         } catch (Exception e1) {
             e1.printStackTrace();
         }
-    }
-
-    private static boolean isAllowToCollect(Exception e) {
-        if (getPrefs() != null) {
-            String exceptionSimpleName = e.getClass().getSimpleName();
-            return getPrefs().getBoolean(exceptionSimpleName, false);
-        }
-        return false;
-    }
-
-    private static boolean isAllowToCollect(AnalyticsType analyticsType) {
-        if (getPrefs() != null)
-            return getPrefs().getBoolean(analyticsType.name(), false);
-        return false;
     }
 
     private static void cacheAnalytics(Analytics analytics, String extraParam) {
@@ -135,5 +113,19 @@ public class WatchSdk {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static boolean isAllowedToCollect(Exception e) {
+        if (getPrefs() != null) {
+            String exceptionSimpleName = e.getClass().getSimpleName();
+            return getPrefs().getBoolean(exceptionSimpleName, false);
+        }
+        return false;
+    }
+
+    private static boolean isAllowedToCollect(AnalyticsType analyticsType) {
+        if (getPrefs() != null)
+            return getPrefs().getBoolean(analyticsType.name(), false);
+        return false;
     }
 }

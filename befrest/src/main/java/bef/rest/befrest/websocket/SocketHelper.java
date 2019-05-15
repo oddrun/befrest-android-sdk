@@ -3,11 +3,7 @@ package bef.rest.befrest.websocket;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -29,10 +25,6 @@ public class SocketHelper {
     private HandlerThread writerThread;
     private Handler handler;
     private UrlConnection urlConnection;
-    private final static int SOL_TCP = 6;
-    private final static int TCP_KEEPIDLE = 4;
-    private final static int TCP_KEEPINTVL = 5;
-    private final static int TCP_KEEPCNT = 6;
 
     public SocketHelper(Handler handler) {
         this.handler = handler;
@@ -43,10 +35,8 @@ public class SocketHelper {
         String host = urlConnection.getHost();
         int port = urlConnection.getPort();
         WebSocketOptions webSocketOptions = urlConnection.getOptions();
-
         if (urlConnection.getScheme().equals("wss")) {
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            System.setProperty("jdk.httpclient.keepalive.timeout", "1000");
             SSLSocket secSoc = (SSLSocket) factory.createSocket();
             secSoc.setUseClientMode(true);
             secSoc.setKeepAlive(true);
@@ -59,6 +49,7 @@ public class SocketHelper {
             socket = new Socket(host, port);
         createWriter();
         createReader();
+
     }
 
     private void createWriter() throws IOException {
@@ -67,7 +58,6 @@ public class SocketHelper {
         if (socket != null)
             writer = new WebSocketWriter(writerThread.getLooper(), handler, socket, urlConnection.getOptions());
         else {
-            createSocket();
             BefrestLog.d(TAG, "socket is null and Writer Thread cant create");
         }
     }

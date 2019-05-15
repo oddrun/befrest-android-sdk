@@ -6,4 +6,5 @@ public enum BefrestEvent {
     REFRESH,
     STOP,
     PING,
+    TEST,
 }

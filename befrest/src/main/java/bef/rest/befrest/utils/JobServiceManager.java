@@ -9,7 +9,7 @@ import android.support.annotation.RequiresApi;
 
 import java.util.concurrent.TimeUnit;
 
-import bef.rest.befrest.befrest.Befrest;
+import bef.rest.befrest.Befrest;
 
 import static bef.rest.befrest.utils.SDKConst.JOB_ID;
 

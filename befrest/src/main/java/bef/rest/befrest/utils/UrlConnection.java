@@ -78,7 +78,6 @@ public class UrlConnection {
         return subscribeUrl;
     }
 
-
     public String getScheme() {
         return scheme;
     }
@@ -117,14 +116,6 @@ public class UrlConnection {
 
     public List<NameValuePair> getHeaders() {
         return header;
-    }
-
-    public void setSubscribeUrl(String subscribeUrl) {
-        this.subscribeUrl = subscribeUrl;
-    }
-
-    public String getSubscribeUrl() {
-        return subscribeUrl;
     }
 
     public void followRedirect(String subscribeUrl) {

@@ -7,6 +7,7 @@ import android.os.Parcelable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import bef.rest.befrest.Befrest;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
@@ -18,8 +19,15 @@ import static bef.rest.befrest.utils.AnalyticsType.INVALID_PONG;
 import static bef.rest.befrest.utils.AnalyticsType.NETWORK_DISCONNECTED;
 import static bef.rest.befrest.utils.AnalyticsType.RETRY;
 import static bef.rest.befrest.utils.AnalyticsType.TRY_TO_CONNECT;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_CACHE_LIFE_TIME;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_HANDSHAKE_TIMEOUT;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_PING_INTERVAL;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_PING_TIMEOUT;
 import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
 import static bef.rest.befrest.utils.BefrestPreferences.saveBoolean;
+import static bef.rest.befrest.utils.BefrestPreferences.saveInt;
+import static bef.rest.befrest.utils.BefrestPreferences.saveLong;
+import static bef.rest.befrest.utils.BefrestPreferences.saveString;
 import static bef.rest.befrest.utils.SDKConst.ANALYTIC_CONF;
 import static bef.rest.befrest.utils.SDKConst.CRASH_CONF;
 import static bef.rest.befrest.utils.SDKConst.INTERRUPTED_EXCEPTION;
@@ -109,8 +117,16 @@ public final class BefrestMessage implements Parcelable {
                     saveBoolean(SOCKET_TIMEOUT_EXCEPTION, crashConf.getBoolean(SOCKET_TIMEOUT_EXCEPTION));
                 if (crashConf.has(SSL_EXCEPTION))
                     saveBoolean(SSL_EXCEPTION, crashConf.getBoolean(SSL_EXCEPTION));
-
             }
+            if (configJson.has(PREF_PING_INTERVAL))
+                saveString(PREF_PING_INTERVAL, configJson.getString(PREF_PING_INTERVAL));
+            if (configJson.has(PREF_PING_TIMEOUT))
+                saveInt(PREF_PING_TIMEOUT, configJson.getInt(PREF_PING_TIMEOUT));
+            if (configJson.has(PREF_HANDSHAKE_TIMEOUT))
+                saveInt(PREF_HANDSHAKE_TIMEOUT, configJson.getInt(PREF_HANDSHAKE_TIMEOUT));
+            if (configJson.has(PREF_CACHE_LIFE_TIME))
+                saveLong(PREF_CACHE_LIFE_TIME, configJson.getInt(PREF_CACHE_LIFE_TIME));
+
         } catch (JSONException e) {
             e.printStackTrace();
         }

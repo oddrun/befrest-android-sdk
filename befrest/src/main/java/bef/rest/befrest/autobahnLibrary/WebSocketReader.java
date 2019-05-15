@@ -509,7 +509,9 @@ public class WebSocketReader extends Thread {
                         } else {
                             notify(new WebSocketMessage.ServerError(status.first, status.second));
                             serverError = true;
-                            WatchSdk.reportAnalytics(AnalyticsType.CANNOT_CONNECT, status.first,status.second);
+                            WatchSdk.reportAnalytics(AnalyticsType.CANNOT_CONNECT,
+                                    status.first,status.second + " " +
+                                            "handshakeParams does not have location");
                         }
                     }
 
@@ -622,19 +624,19 @@ public class WebSocketReader extends Thread {
 
         } catch (WebSocketException e) {
             notify(new WebSocketMessage.ProtocolViolation(e));
-            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_PROTOCOL_ERROR, "WebSocketException happen");
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_PROTOCOL_ERROR, e.getMessage());
             WatchSdk.reportCrash(e,e.getMessage());
 
         } catch (SocketException e) {
             if (mState != STATE_CLOSED && !mSocket.isClosed()) {
                 notify(new WebSocketMessage.ConnectionLost());
-                WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_CONNECTION_LOST, "SocketException happen");
+                WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_CONNECTION_LOST, e.getMessage());
             }
 
         } catch (Exception e) {
             notify(new WebSocketMessage.Error(e));
-            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_INTERNAL_ERROR, "Exception happen");
-            WatchSdk.reportCrash(e,"may be connection aborted");
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, CLOSE_INTERNAL_ERROR, "Exception happen(may be connection aborted)");
+            WatchSdk.reportCrash(e,e.getMessage());
 
         } finally {
 

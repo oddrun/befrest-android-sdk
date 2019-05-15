@@ -5,6 +5,7 @@ import bef.rest.befrest.utils.NameValuePair;
 
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_AUTH;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_CH_ID;
+import static bef.rest.befrest.utils.BefrestPreferences.PREF_TOPIC;
 import static bef.rest.befrest.utils.BefrestPreferences.PREF_U_ID;
 import static bef.rest.befrest.utils.BefrestPreferences.getPrefs;
 import static bef.rest.befrest.utils.BefrestPreferences.saveInt;
@@ -27,6 +28,7 @@ public class ClientData {
             chId = getPrefs().getString(PREF_CH_ID, "");
             authToken = getPrefs().getString(PREF_AUTH, "");
             uId = getPrefs().getInt(PREF_U_ID, 0);
+            topics = getPrefs().getString(PREF_TOPIC,"");
         }
     }
 
@@ -106,12 +108,13 @@ public class ClientData {
     public void updateTopic(String topics) {
         this.topics = topics;
         BefrestLog.i(TAG, "updatedTopic: is " + this.topics);
+        saveString(PREF_TOPIC,topics);
     }
 
 
     public void clearTopic() {
         this.topics = "";
-        BefrestLog.i(TAG, "updatedTopic: is " + this.topics);
+        saveString(PREF_TOPIC,"");
     }
 
 }

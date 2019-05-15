@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
-import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
@@ -21,7 +20,6 @@ import bef.rest.befrest.befrest.BefrestMessage;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.BefrestLog;
 import bef.rest.befrest.utils.JobServiceManager;
-import bef.rest.befrest.utils.ReportManager;
 import bef.rest.befrest.utils.Util;
 import bef.rest.befrest.utils.WatchSdk;
 
@@ -120,6 +118,8 @@ public class PushService extends Service implements SocketCallBacks {
             case PING:
                 connectionManager.forward(BefrestEvent.PING);
                 break;
+            case "TEST":
+                connectionManager.forward(BefrestEvent.TEST);
             default:
                 connectIfNetworkAvailable();
         }
@@ -339,7 +339,6 @@ public class PushService extends Service implements SocketCallBacks {
     /**
      * this method called when new Message(s) received from Server
      * <br>
-     *
      * @param messages new Messages that come from Server
      *                 call super() if you want receive message from Receiver(s)
      */

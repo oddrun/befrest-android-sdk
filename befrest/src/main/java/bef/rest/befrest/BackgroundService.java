@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 
 import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
-import bef.rest.befrest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestConnectionMode;
 import bef.rest.befrest.befrest.BefrestContract;
 import bef.rest.befrest.befrest.BefrestEvent;
@@ -57,7 +56,6 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Befrest.getInstance().setContext(this);
         BefrestLog.d(TAG, "onStartJob: job started");
         Befrest.getInstance().setServiceRunning(false);
         parameters = params;
@@ -189,11 +187,11 @@ public class BackgroundService extends JobService implements SocketCallBacks {
     }
 
     private void handleReceivedMessages() {
-        final ArrayList<BefrestMessage> msgs = new ArrayList<>(receivedMessages.size());
-        msgs.addAll(receivedMessages);
+        final ArrayList<BefrestMessage> messages = new ArrayList<>(receivedMessages.size());
+        messages.addAll(receivedMessages);
         receivedMessages.clear();
-        Collections.sort(msgs, Util.comparator);
-        mainThreadHandler.post(() -> onPushReceived(msgs));
+        Collections.sort(messages, Util.comparator);
+        mainThreadHandler.post(() -> onPushReceived(messages));
     }
 
     /**
