@@ -21,7 +21,6 @@ import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -30,8 +29,6 @@ import java.util.Random;
 import bef.rest.befrest.utils.AnalyticsType;
 import bef.rest.befrest.utils.NameValuePair;
 import bef.rest.befrest.utils.WatchSdk;
-
-import static android.content.ContentValues.TAG;
 
 
 /*
@@ -49,12 +46,9 @@ public class WebSocketWriter extends Handler {
     private final Handler mMaster;
     private final Looper mLooper;
     private final WebSocketOptions mOptions;
-    private BufferedOutputStream mBufferedOutputStream;
+    private ByteBufferOutputStream mBuffer;
     private Socket mSocket;
     private boolean mActive;
-    int i = 0;
-
-
     /**
      * Create new WebSockets background writer.
      *
@@ -71,13 +65,40 @@ public class WebSocketWriter extends Handler {
         mMaster = master;
         mOptions = options;
         mSocket = socket;
-        mBufferedOutputStream = new BufferedOutputStream(socket.getOutputStream(), options.getMaxFramePayloadSize() + 14);
+        mBuffer = new ByteBufferOutputStream(options.getMaxFramePayloadSize() + 14, 4 * 64 * 1024);
         mActive = true;
+        mSocket.setSendBufferSize(2 * 1024 * 1024);
+
+    }
+
+    @Override
+    public void handleMessage(Message msg) {
+        try {
+            mBuffer.clear();
+            processMessage(msg.obj);
+            setupWriter();
+        } catch (SocketException e) {
+            notify(new WebSocketMessage.ConnectionLost());
+            WatchSdk.reportCrash(e, null);
+            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST, "Socket Exception Happen");
+        } catch (Exception e) {
+            notify(new Error(e));
+        }
+    }
+
+    private void setupWriter() throws IOException {
+        mBuffer.flip();
+        if (mBuffer.remaining() > 0) {
+            byte arr[] = new byte[mBuffer.remaining()];
+            mBuffer.getBuffer().get(arr);
+            mSocket.getOutputStream().write(arr);
+            mSocket.getOutputStream().flush();
+        }
     }
 
     private void write(String stringToWrite) {
         try {
-            mBufferedOutputStream.write(stringToWrite.getBytes("UTF-8"));
+            mBuffer.write(stringToWrite.getBytes("UTF-8"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -85,7 +106,7 @@ public class WebSocketWriter extends Handler {
 
     private void write(byte byteToWrite) {
         try {
-            mBufferedOutputStream.write(byteToWrite);
+            mBuffer.write(byteToWrite);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -93,7 +114,7 @@ public class WebSocketWriter extends Handler {
 
     private void write(byte[] bytesToWrite) {
         try {
-            mBufferedOutputStream.write(bytesToWrite);
+            mBuffer.write(bytesToWrite);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -198,7 +219,7 @@ public class WebSocketWriter extends Handler {
         // Header injection
         if (message.mHeaderList != null) {
             for (NameValuePair pair : message.mHeaderList) {
-                mBufferedOutputStream.write((pair.getName() + ":" + pair.getValue()).getBytes());
+                mBuffer.write((pair.getName() + ":" + pair.getValue()).getBytes());
                 write(CRLF);
             }
         }
@@ -361,9 +382,7 @@ public class WebSocketWriter extends Handler {
                     payload[i] ^= mask[i % 4];
                 }
             }
-            mBufferedOutputStream.write(payload, 0, length);
-            Log.i("AckTest", "sendFrame: " + payload);
-            mBufferedOutputStream.flush();
+            mBuffer.write(payload, 0, length);
         }
     }
 
@@ -374,22 +393,6 @@ public class WebSocketWriter extends Handler {
      *
      * @param msg Message from thread message queue.
      */
-    @Override
-    public void handleMessage(Message msg) {
-        try {
-            Log.i(TAG, "AckTest handleMessage: ");
-            processMessage(msg.obj);
-            if (mActive && mSocket.isConnected() && !mSocket.isClosed()) {
-                mBufferedOutputStream.flush();
-            }
-        } catch (SocketException e) {
-            notify(new WebSocketMessage.ConnectionLost());
-            WatchSdk.reportCrash(e,null);
-            WatchSdk.reportAnalytics(AnalyticsType.CONNECTION_LOST,"Socket Exception Happen");
-        } catch (Exception e) {
-            notify(new Error(e));
-        }
-    }
 
 
     /**
@@ -447,5 +450,15 @@ public class WebSocketWriter extends Handler {
 
         throw new WebSocketException("unknown message received by WebSocketWriter");
 
+    }
+
+    public void flush() {
+        mBuffer.clear();
+        mBuffer.getBuffer().clear();
+        try {
+            mBuffer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
