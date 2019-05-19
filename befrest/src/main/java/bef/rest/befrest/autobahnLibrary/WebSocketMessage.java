@@ -102,7 +102,7 @@ public class WebSocketMessage {
 
         public String payload;
 
-        TextMessage(String payload) {
+        public TextMessage(String payload) {
             this.payload = payload;
         }
     }

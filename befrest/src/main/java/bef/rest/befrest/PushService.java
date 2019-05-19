@@ -118,8 +118,6 @@ public class PushService extends Service implements SocketCallBacks {
             case PING:
                 connectionManager.forward(BefrestEvent.PING);
                 break;
-            case "TEST":
-                connectionManager.forward(BefrestEvent.TEST);
             default:
                 connectIfNetworkAvailable();
         }
@@ -300,7 +298,7 @@ public class PushService extends Service implements SocketCallBacks {
                 break;
             case BATCH:
                 isBachReceiveMode = true;
-                batchSize = Integer.valueOf(msg.getData());
+                batchSize = Integer.valueOf(msg.getData().split("-")[0]);
                 int batchTime = getBatchTime();
                 messageHandler.postDelayed(finishBatchMode, batchTime);
                 break;

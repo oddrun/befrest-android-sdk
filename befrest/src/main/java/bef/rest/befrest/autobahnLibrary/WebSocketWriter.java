@@ -197,6 +197,10 @@ public class WebSocketWriter extends Handler {
         write("Sec-WebSocket-Key: " + newHandshakeKey());
         write(CRLF);
 
+//        write("Sec-WebSocket-Extensions: " + "permessage-deflate;\n" +
+//                "  server_max_window_bits=10");
+//        write(CRLF);
+
         if (message.mOrigin != null && !message.mOrigin.equals("")) {
             write("Origin: " + message.mOrigin);
             write(CRLF);

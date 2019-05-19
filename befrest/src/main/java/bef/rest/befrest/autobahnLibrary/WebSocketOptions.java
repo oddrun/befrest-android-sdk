@@ -55,7 +55,7 @@ public class WebSocketOptions {
      *
      * @return Maximum size in octets for frame payload.
      */
-    int getMaxFramePayloadSize() {
+    public int getMaxFramePayloadSize() {
         return mMaxFramePayloadSize;
     }
 

@@ -2,6 +2,7 @@ package bef.rest.befrest.websocket;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,6 +11,7 @@ import java.net.Socket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import bef.rest.befrest.Befrest;
 import bef.rest.befrest.autobahnLibrary.WebSocketMessage;
 import bef.rest.befrest.autobahnLibrary.WebSocketOptions;
 import bef.rest.befrest.autobahnLibrary.WebSocketReader;
@@ -45,8 +47,11 @@ public class SocketHelper {
             secSoc.addHandshakeCompletedListener(event -> {
             });
             socket = secSoc;
-        } else
+        } else {
             socket = new Socket(host, port);
+            socket.setSendBufferSize(2 * 1024 * 1024);
+        }
+
         createWriter();
         createReader();
 
@@ -83,8 +88,10 @@ public class SocketHelper {
     }
 
     public void writeOnWebSocket(WebSocketMessage.Message message) {
-        if (writer != null)
+        if (writer != null){
+            writer.flush();
             writer.forward(message);
+        }
         else
             BefrestLog.d(TAG, "Writer is null");
     }

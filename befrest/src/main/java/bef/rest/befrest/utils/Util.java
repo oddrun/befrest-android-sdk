@@ -26,6 +26,7 @@ import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.concurrent.ThreadFactory;
 
 import bef.rest.befrest.Befrest;
 import bef.rest.befrest.befrest.BefrestMessage;
@@ -265,5 +266,12 @@ public class Util {
         }
         // Not found
         return true;
+    }
+    public static ThreadFactory threadFactory(String name, boolean daemon) {
+        return runnable -> {
+            Thread result = new Thread(runnable, name);
+            result.setDaemon(daemon);
+            return result;
+        };
     }
 }

@@ -2,6 +2,7 @@ package bef.rest.befrest;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
+import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,9 +11,14 @@ import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import bef.rest.befrest.autobahnLibrary.SocketCallBacks;
 import bef.rest.befrest.befrest.BefrestConnectionMode;
@@ -56,6 +62,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     @Override
     public boolean onStartJob(JobParameters params) {
+        saveIntoFile("Start");
         BefrestLog.d(TAG, "onStartJob: job started");
         Befrest.getInstance().setServiceRunning(false);
         parameters = params;
@@ -84,22 +91,25 @@ public class BackgroundService extends JobService implements SocketCallBacks {
                 try {
                     super.handleMessage(msg);
                 } catch (Exception e) {
-                    WatchSdk.reportCrash(e,"Exception happen During broadcast message to app");
+                    WatchSdk.reportCrash(e, "Exception happen During broadcast message to app");
                 }
             }
         };
 
     }
 
+
     @Override
     public boolean onStopJob(JobParameters params) {
         BefrestLog.d(TAG, "onStopJob:  job stopped");
+        saveIntoFile("Stop");
         mainThreadHandler.removeCallbacks(jobFinishSuccessfully);
         return false;
     }
 
     @Override
     public void onDestroy() {
+        saveIntoFile("Destroy");
         if (connectionManager != null) {
             connectionManager.forward(BefrestEvent.DISCONNECT);
             connectionManager.forward(BefrestEvent.STOP);
@@ -111,7 +121,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-            WatchSdk.reportCrash(e,null);
+            WatchSdk.reportCrash(e, null);
         }
         connectionManager = null;
         befrestHandler = null;
@@ -163,7 +173,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
                 break;
             case BATCH:
                 isBachReceiveMode = true;
-                batchSize = Integer.valueOf(msg.getData());
+                batchSize = Integer.valueOf(msg.getData().split("-")[0]);
                 int batchTime = getBatchTime();
                 messageHandler.postDelayed(finishBatchMode, batchTime);
                 break;
@@ -213,6 +223,7 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     private Runnable jobFinishSuccessfully = () ->
     {
+        saveIntoFile("jobFinishSuccessfully");
         BefrestLog.i(TAG, "jobFinishSuccessfully");
         jobFinished(parameters, false);
     };
@@ -266,5 +277,21 @@ public class BackgroundService extends JobService implements SocketCallBacks {
 
     protected void connectionRefreshed() {
         BefrestContract.getInstance().sendBefrestBroadcast(this, CONNECTION_REFRESHED, null);
+    }
+    private void saveIntoFile(String method) {
+        FileOutputStream outputStream = null;
+        try {
+            outputStream = openFileOutput("savedData.txt", Context.MODE_APPEND);
+            Calendar calendar = Calendar.getInstance(Locale.getDefault());
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+            int date = calendar.get(Calendar.DAY_OF_MONTH);
+            outputStream.write(String.valueOf(method + "-->" + hour + ":" + minute + "\t" + date + "\n\n").getBytes());
+            outputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

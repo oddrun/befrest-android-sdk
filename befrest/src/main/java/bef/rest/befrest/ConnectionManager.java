@@ -6,6 +6,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
+import android.util.Log;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -73,12 +74,12 @@ public class ConnectionManager extends Handler {
     private int handShakeTimeOut;
     private int pingTimeOut;
     private Handler messageHandler;
-    private Executor executor = new ThreadPoolExecutor(0, 1, 60,
+
+    private Executor executor = new ThreadPoolExecutor(0, 1, 20,
             TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
             new BefrestThreadFactory("BEFREST_REPORT_POOL"));
-    private List<String> pendingAcks = new ArrayList<>();
-    private boolean isSendingAck;
-
+    private boolean isBatchTypeReceived;
+    private int batchSize, totalMessage, countOfAckSent = 0;
 
     ConnectionManager(Looper looper, SocketCallBacks socketCallback) {
         super(looper);
@@ -92,9 +93,44 @@ public class ConnectionManager extends Handler {
         pingInterval = getPingInterval();
         handShakeTimeOut = getHandShakeTimeOut();
         pingTimeOut = getPingTimeOut();
-        HandlerThread messageHandlerThread = new HandlerThread(TAG);
-        messageHandlerThread.start();
-        messageHandler = new Handler(messageHandlerThread.getLooper());
+        HandlerThread handlerThread = new HandlerThread(TAG);
+        handlerThread.start();
+        messageHandler = new Handler(handlerThread.getLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                try {
+                    Object message = msg.obj;
+                    if (message instanceof WebSocketMessage.AckMessage) {
+                        WebSocketMessage.AckMessage ack = (WebSocketMessage.AckMessage) message;
+                        socketHelper.writeOnWebSocket(ack);
+                        if (isBatchTypeReceived) {
+                            countOfAckSent++;
+                            if (countOfAckSent == batchSize) {
+                                if (batchSize < totalMessage) {
+                                    BefrestLog.i(TAG, countOfAckSent + " Ack sent to server");
+                                    Thread.sleep(50);
+                                    sendSyncSignalToServer();
+                                }
+                                resetBatchType();
+                            }
+                        }
+                    }
+                    Thread.sleep(50);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+    }
+
+    private void sendSyncSignalToServer() {
+        BefrestLog.d(TAG, "send sync signal to server");
+        socketHelper.writeOnWebSocket(new WebSocketMessage.TextMessage("S"));
+    }
+
+    private void resetBatchType() {
+        isBatchTypeReceived = false;
+        countOfAckSent = 0;
     }
 
     void forward(Object message) {
@@ -172,6 +208,9 @@ public class ConnectionManager extends Handler {
             return;
         switch (befrestMessage.getType()) {
             case BATCH:
+                BefrestLog.d(TAG, "batch message received");
+                isBatchTypeReceived = true;
+                prepareToReceivedMessages(befrestMessage.getData());
                 socketCallBacks.onBefrestMessage(befrestMessage);
                 break;
             case PONG:
@@ -179,11 +218,10 @@ public class ConnectionManager extends Handler {
             case NORMAL:
             case GROUP:
             case TOPIC:
-                pendingAcks.add(befrestMessage.getAckMessage());
-                if (!isSendingAck) {
-                    postDelayed(sendNextAck, 50);
-                    isSendingAck = true;
-                }
+                Message message = obtainMessage();
+                message.obj = new WebSocketMessage.AckMessage(befrestMessage.getAckMessage());
+                Log.i(TAG, "serverTextMessage: ");
+                messageHandler.sendMessage(message);
                 if (isNewMessage(befrestMessage.getMsgId())) {
                     lastReceivedMessages.add(befrestMessage.getMsgId());
                     socketCallBacks.onBefrestMessage(befrestMessage);
@@ -194,9 +232,12 @@ public class ConnectionManager extends Handler {
         }
     }
 
-    private void sendAckToServer(String ackMessage) {
-        BefrestLog.v(TAG, "send Ack Message " + ackMessage + " ToServer");
-        socketHelper.writeOnWebSocket(new WebSocketMessage.AckMessage(ackMessage));
+    private void prepareToReceivedMessages(String data) {
+        String[] messages = data.split("-");
+        batchSize = Integer.parseInt(messages[0]);
+        totalMessage = Integer.valueOf(messages[1]);
+        BefrestLog.d(TAG+"TESTB", "batchSize =  [ " + batchSize + " ] ," +
+                " totalMessage = [ " + totalMessage + " ] ");
     }
 
     private void serverHandshakeMessage(WebSocketMessage.Message msg) {
@@ -290,21 +331,9 @@ public class ConnectionManager extends Handler {
             case STOP:
                 looper.quit();
                 break;
-            case TEST:
-                sendSample();
         }
     }
 
-    private void sendSample() {
-        for (int i = 0; i <100 ; i++) {
-            try {
-                Thread.sleep(1000);
-                socketHelper.writeOnWebSocket(new WebSocketMessage.AckMessage(i + "   : ljkdfgldkfdjdlkgjdfjklgdjgdkljgdfklfdjgdlkgjdgl;kd;jgd;kflgjdflkdfjgdlfkjgjdfdlh"));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     private void refreshConnection() {
         BefrestLog.v(TAG, "Refresh Connection ");
@@ -410,7 +439,11 @@ public class ConnectionManager extends Handler {
         BefrestLog.w(TAG, "disconnect start");
         String res = null;
         if (reason.length > 0) {
-            res = reason[0].toString();
+            try{
+                res = reason[0].toString();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }
         removeCallbacks(disconnectIfWebSocketHandshakeTimeOut);
         cancelRestart();
@@ -484,24 +517,5 @@ public class ConnectionManager extends Handler {
     private Runnable saveMessageRunnable = () -> {
         lastReceivedMessages.save();
         BefrestLog.i(TAG, "save Message Successfully");
-    };
-
-    private Runnable sendNextAck = new Runnable() {
-        @Override
-        public void run() {
-            if (!pendingAcks.isEmpty()) {
-                try {
-                        socketHelper.writeOnWebSocket(new WebSocketMessage.
-                                AckMessage(pendingAcks.remove(pendingAcks.size() - 1)));
-                } catch (Exception ignored) {
-                }
-            }
-            if (!pendingAcks.isEmpty()) {
-                postDelayed(sendNextAck, 50);
-                isSendingAck = true;
-            } else {
-                isSendingAck = false;
-            }
-        }
     };
 }

@@ -209,9 +209,6 @@ public class Befrest implements BefrestAppDelegate {
     }
 
     private void startBefrest() {
-        if (SDK_INT >= OREO_SDK_INT) {
-            JobServiceManager.getInstance().cancelJob();
-        }
         if (!isMyServiceRunning(pushService)) {
             BefrestLog.i(TAG, "startBefrest: Service is starting");
             isBefrestStart = true;
@@ -271,9 +268,11 @@ public class Befrest implements BefrestAppDelegate {
     @Override
     public void onAppForeground() {
         BefrestLog.i(TAG, "application is in foreground currently");
-        if (!isBefrestStart && wantToStart) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            JobServiceManager.getInstance().cancelJob();
+        }
+        if (isBefrestStart && wantToStart) {
             if (SDK_INT >= OREO_SDK_INT) {
-                JobServiceManager.getInstance().cancelJob();
                 startService(CONNECT);
             }
         }
@@ -374,10 +373,6 @@ public class Befrest implements BefrestAppDelegate {
 
     public void setBackgroundService(Class<?> backgroundService) {
         this.backgroundService = backgroundService;
-    }
-
-    public void test(){
-        startService("TEST");
     }
 
     public BefrestConnectionMode getBefrestConnectionMode() {
