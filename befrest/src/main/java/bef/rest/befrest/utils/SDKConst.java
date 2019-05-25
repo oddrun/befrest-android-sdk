@@ -19,7 +19,7 @@ public class SDKConst {
     public static final String KEY_MESSAGE_PASSED = "KEY_MESSAGE_PASSED";
     static final String BROADCAST_SENDING_PERMISSION_POSTFIX = ".permission.PUSH_SERVICE";
     static final int API_VERSION = 1;
-    static final int SDK_VERSION = 2;
+    static final int SDK_VERSION = 3;
     public static final int PUSH = 0;
     public static final int UNAUTHORIZED = 1;
     public static final int CONNECTION_REFRESHED = 2;

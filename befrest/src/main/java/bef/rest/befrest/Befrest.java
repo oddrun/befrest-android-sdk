@@ -317,6 +317,7 @@ public class Befrest implements BefrestAppDelegate {
 
     @SuppressWarnings("unused")
     public void commitTopics() {
+        ClientData.getInstance().clearTopicHeader();
         stop();
         start();
     }

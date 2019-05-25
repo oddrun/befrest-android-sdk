@@ -111,10 +111,13 @@ public class ClientData {
         saveString(PREF_TOPIC,topics);
     }
 
-
     public void clearTopic() {
         this.topics = "";
         saveString(PREF_TOPIC,"");
+    }
+
+    public void clearTopicHeader(){
+        topicHeader = null;
     }
 
 }

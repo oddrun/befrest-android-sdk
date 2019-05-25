@@ -26,7 +26,7 @@ import javax.net.ssl.SSLException;
 
 public class NetworkManager {
     private static final String TAG = "NetworkManager";
-    private static String BASE_URL = "http://172.30.24.84:4343";
+    private static String BASE_URL = "https://r.bef.rest";
     private int connectionTimeOut;
 
     private static class Loader {
@@ -183,7 +183,7 @@ public class NetworkManager {
                 }
     }
     String generateReportUrl() {
-        return BASE_URL + "/report";
+        return BASE_URL + "/report/1/behavior";
     }
 
 }
